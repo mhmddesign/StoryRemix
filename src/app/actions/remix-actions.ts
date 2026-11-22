@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/utils";
+import { awardXPInternal, checkAndUnlockAchievementAction } from "./gamification-actions";
 
 export async function createRemixAction(
   parentStoryId: string,
@@ -107,6 +108,13 @@ export async function createRemixAction(
     remixed_at_paragraph: branchParagraphIndex,
     creator_id: user.id,
   } as any);
+
+  // Award XP for creating a remix (+25 XP)
+  await awardXPInternal(user.id, "remix_story", 25, `story_remixed:${newStory.id}`, {
+    parent_story_id: parentStoryId,
+    remix_story_id: newStory.id,
+  });
+  await checkAndUnlockAchievementAction(user.id, "first_remix");
 
   // 7. Track analytics event
   await supabase.from("analytics_events").insert({

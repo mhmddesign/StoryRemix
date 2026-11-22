@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createStoryAction } from "@/app/actions/story-actions";
 import { analyzeStoryText } from "@/lib/sentence-tokenizer";
+import { RevenuePolicySelector } from "@/components/story/revenue-policy-selector";
+import { RevenuePolicyType } from "@/types/database";
 import {
   Feather,
   Sparkles,
@@ -15,6 +17,7 @@ import {
   CheckCircle,
   HelpCircle,
   Loader2,
+  DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,6 +61,13 @@ export default function NewStoryPage() {
   const [tags, setTags] = useState("");
   const [openingText, setOpeningText] = useState("");
 
+  // Co-author revenue sharing policy state
+  const [policyType, setPolicyType] = useState<RevenuePolicyType>("equal_collaborators");
+  const [creatorReserved, setCreatorReserved] = useState(30);
+  const [openingWeight, setOpeningWeight] = useState(2);
+  const [continuationWeight, setContinuationWeight] = useState(1);
+  const [finalWeight, setFinalWeight] = useState(2);
+
   // Sentence analysis for opening paragraph
   const analysis = analyzeStoryText(openingText);
   const isOpeningValid = analysis.sentenceCount >= 2 && analysis.sentenceCount <= 5;
@@ -94,6 +104,11 @@ export default function NewStoryPage() {
     formData.append("defaultRoundDuration", roundDuration.toString());
     formData.append("tags", tags);
     formData.append("openingText", openingText);
+    formData.append("revenuePolicyType", policyType);
+    formData.append("creatorReservedPercentage", creatorReserved.toString());
+    formData.append("openingParagraphWeight", openingWeight.toString());
+    formData.append("continuationParagraphWeight", continuationWeight.toString());
+    formData.append("finalParagraphWeight", finalWeight.toString());
 
     startTransition(async () => {
       const res = await createStoryAction(formData);
@@ -330,6 +345,31 @@ export default function NewStoryPage() {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Co-author Revenue-Sharing Policy Card */}
+        <div className="p-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold text-[var(--foreground)] uppercase tracking-wider flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-amber-700" /> Co-Author Revenue-Sharing Policy
+            </h2>
+            <p className="text-xs text-[var(--muted-foreground)]">
+              Choose how monetary appreciation (virtual gifts and competition prizes) will be distributed among you and future co-authors. Contributors must accept these terms before submitting.
+            </p>
+          </div>
+
+          <RevenuePolicySelector
+            policyType={policyType}
+            onChangePolicyType={setPolicyType}
+            creatorReserved={creatorReserved}
+            onChangeCreatorReserved={setCreatorReserved}
+            openingWeight={openingWeight}
+            onChangeOpeningWeight={setOpeningWeight}
+            continuationWeight={continuationWeight}
+            onChangeContinuationWeight={setContinuationWeight}
+            finalWeight={finalWeight}
+            onChangeFinalWeight={setFinalWeight}
+          />
         </div>
 
         {/* Submit Button */}

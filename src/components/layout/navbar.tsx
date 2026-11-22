@@ -20,6 +20,8 @@ import {
   BookOpen,
   Bookmark,
   ShieldAlert,
+  Trophy,
+  Award,
 } from "lucide-react";
 
 export function Navbar() {
@@ -47,24 +49,38 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+        <nav className="hidden md:flex items-center gap-5 text-sm font-medium">
           <Link
             href="/explore"
-            className="flex items-center gap-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+            className="flex items-center gap-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
           >
             <Compass className="w-4 h-4" />
             <span>{t("explore")}</span>
           </Link>
           <Link
             href="/rounds"
-            className="flex items-center gap-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+            className="flex items-center gap-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
           >
             <Flame className="w-4 h-4 text-amber-600" />
             <span>{t("activeRounds")}</span>
           </Link>
           <Link
+            href="/leaderboards"
+            className="flex items-center gap-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+          >
+            <Trophy className="w-4 h-4 text-amber-600" />
+            <span>Rankings</span>
+          </Link>
+          <Link
+            href="/competitions"
+            className="flex items-center gap-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+          >
+            <Award className="w-4 h-4 text-amber-700" />
+            <span>Awards</span>
+          </Link>
+          <Link
             href="/completed"
-            className="flex items-center gap-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+            className="flex items-center gap-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             <span>{t("completed")}</span>
@@ -219,6 +235,22 @@ export function Navbar() {
             >
               <Flame className="w-4 h-4 text-amber-600" />
               <span>{t("activeRounds")}</span>
+            </Link>
+            <Link
+              href="/leaderboards"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--accent)] text-sm font-medium"
+            >
+              <Trophy className="w-4 h-4 text-amber-600" />
+              <span>Rankings</span>
+            </Link>
+            <Link
+              href="/competitions"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--accent)] text-sm font-medium"
+            >
+              <Award className="w-4 h-4 text-amber-700" />
+              <span>Competitions</span>
             </Link>
             <Link
               href="/completed"

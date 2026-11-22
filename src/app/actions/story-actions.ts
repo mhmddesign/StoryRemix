@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { analyzeStoryText } from "@/lib/sentence-tokenizer";
 import { slugify } from "@/lib/utils";
+import { awardXPInternal, checkAndUnlockAchievementAction } from "./gamification-actions";
+import { RevenuePolicyType } from "@/types/database";
 import { z } from "zod";
 
 const createStorySchema = z.object({
@@ -18,6 +20,16 @@ const createStorySchema = z.object({
   defaultVoteThreshold: z.number().int().min(1).max(100),
   defaultRoundDuration: z.number().int().min(60).max(604800), // 1 min to 7 days
   tags: z.array(z.string()).default([]),
+  revenuePolicyType: z.enum([
+    "equal_collaborators",
+    "contribution_weighted",
+    "creator_and_collaborators",
+    "weighted_roles",
+  ]).default("equal_collaborators"),
+  creatorReservedPercentage: z.number().int().min(0).max(100).default(30),
+  openingParagraphWeight: z.number().int().min(1).max(5).default(2),
+  continuationParagraphWeight: z.number().int().min(1).max(5).default(1),
+  finalParagraphWeight: z.number().int().min(1).max(5).default(2),
 });
 
 export async function createStoryAction(formData: FormData) {
@@ -44,6 +56,11 @@ export async function createStoryAction(formData: FormData) {
     defaultVoteThreshold: Number(formData.get("defaultVoteThreshold") || 3),
     defaultRoundDuration: Number(formData.get("defaultRoundDuration") || 86400),
     tags: parsedTags,
+    revenuePolicyType: (formData.get("revenuePolicyType") as any) || "equal_collaborators",
+    creatorReservedPercentage: Number(formData.get("creatorReservedPercentage") || 30),
+    openingParagraphWeight: Number(formData.get("openingParagraphWeight") || 2),
+    continuationParagraphWeight: Number(formData.get("continuationParagraphWeight") || 1),
+    finalParagraphWeight: Number(formData.get("finalParagraphWeight") || 2),
   });
 
   if (!validated.success) {
@@ -121,7 +138,25 @@ export async function createStoryAction(formData: FormData) {
     return { success: false, error: "Failed to open round 1." };
   }
 
-  // 4. Log analytics event
+  // 4. Save Revenue Sharing Policy
+  await supabase.from("author_revenue_policies").insert({
+    story_id: story.id,
+    policy_type: values.revenuePolicyType,
+    creator_reserved_percentage: values.creatorReservedPercentage,
+    opening_paragraph_weight: values.openingParagraphWeight,
+    continuation_paragraph_weight: values.continuationParagraphWeight,
+    final_paragraph_weight: values.finalParagraphWeight,
+    version: 1,
+    is_locked: false,
+  });
+
+  // 5. Award Creator XP & Unlock Achievements
+  await awardXPInternal(user.id, "publish_story", 25, `story_created:${story.id}`, {
+    story_id: story.id,
+  });
+  await checkAndUnlockAchievementAction(user.id, "first_story");
+
+  // 6. Log analytics event
   await supabase.from("analytics_events").insert({
     event_name: "story_created",
     user_id: user.id,
@@ -130,6 +165,7 @@ export async function createStoryAction(formData: FormData) {
       genre: values.genre,
       max_paragraphs: values.maxParagraphs,
       vote_threshold: values.defaultVoteThreshold,
+      revenue_policy: values.revenuePolicyType,
     },
   });
 
@@ -164,66 +200,64 @@ export async function submitContinuationAction(
     p_word_count: analysis.wordCount,
   });
 
+  let contributionId: string | null = null;
+
   if (!rpcError && rpcData) {
-    // Analytics
-    await supabase.from("analytics_events").insert({
-      event_name: "contribution_submitted",
-      user_id: user.id,
-      properties: { story_id: storyId, round_id: roundId },
-    });
+    contributionId = (rpcData as any)?.contribution_id || null;
+  } else {
+    // Fallback direct transaction
+    const { data: round } = await supabase
+      .from("story_rounds")
+      .select("status, deadline_at")
+      .eq("id", roundId)
+      .single();
 
-    revalidatePath(`/stories/[slug]`, "page");
-    return { success: true, message: "Continuation submitted successfully!" };
+    if (!round || round.status !== "open" || new Date() >= new Date(round.deadline_at)) {
+      return { success: false, error: "Round submission deadline has expired." };
+    }
+
+    const { data: existing } = await supabase
+      .from("contributions")
+      .select("id")
+      .eq("round_id", roundId)
+      .eq("author_id", user.id)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (existing) {
+      return { success: false, error: "You have already submitted an active continuation for this round." };
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("contributions")
+      .insert({
+        story_id: storyId,
+        round_id: roundId,
+        author_id: user.id,
+        body: body.trim(),
+        sentence_count: analysis.sentenceCount,
+        word_count: analysis.wordCount,
+        status: "active",
+        vote_count: 0,
+      })
+      .select("id")
+      .single();
+
+    if (insertError) {
+      return { success: false, error: insertError.message };
+    }
+    contributionId = inserted?.id || null;
   }
 
-  // Fallback to direct transactional query if RPC not yet loaded in current test env
-  // 1. Check round deadline & status
-  const { data: round, error: fetchRoundError } = await supabase
-    .from("story_rounds")
-    .select("status, deadline_at")
-    .eq("id", roundId)
-    .single();
-
-  if (fetchRoundError || !round) {
-    return { success: false, error: "Round not found." };
-  }
-
-  if (round.status !== "open") {
-    return { success: false, error: "Round is closed." };
-  }
-
-  if (new Date() >= new Date(round.deadline_at)) {
-    return { success: false, error: "Round submission deadline has expired." };
-  }
-
-  // 2. Check for existing active submission by this user
-  const { data: existing } = await supabase
-    .from("contributions")
-    .select("id")
-    .eq("round_id", roundId)
-    .eq("author_id", user.id)
-    .eq("status", "active")
-    .maybeSingle();
-
-  if (existing) {
-    return { success: false, error: "You have already submitted a continuation for this round." };
-  }
-
-  // 3. Insert contribution
-  const { error: insertError } = await supabase.from("contributions").insert({
-    story_id: storyId,
-    round_id: roundId,
-    author_id: user.id,
-    body: body.trim(),
-    sentence_count: analysis.sentenceCount,
-    word_count: analysis.wordCount,
-    status: "active",
-    vote_count: 0,
-  });
-
-  if (insertError) {
-    return { success: false, error: insertError.message };
-  }
+  // Award XP for submitting continuation (+10 XP)
+  await awardXPInternal(
+    user.id,
+    "submit_continuation",
+    10,
+    `continuation:${roundId}:${user.id}`,
+    { story_id: storyId, round_id: roundId }
+  );
+  await checkAndUnlockAchievementAction(user.id, "first_contribution");
 
   await supabase.from("analytics_events").insert({
     event_name: "contribution_submitted",
@@ -250,12 +284,15 @@ export async function castVoteAction(roundId: string, contributionId: string) {
   });
 
   if (!rpcError && rpcData) {
+    // Award XP for voting (+2 XP with daily cap)
+    await awardXPInternal(user.id, "cast_vote", 2, `vote:${roundId}:${user.id}`);
+    await checkAndUnlockAchievementAction(user.id, "first_vote");
+
     revalidatePath(`/stories/[slug]`, "page");
     return { success: true, message: (rpcData as any)?.message || "Vote recorded!" };
   }
 
   // Fallback direct transaction
-  // 1. Verify round is open & not expired
   const { data: round } = await supabase
     .from("story_rounds")
     .select("status, deadline_at")
@@ -266,7 +303,6 @@ export async function castVoteAction(roundId: string, contributionId: string) {
     return { success: false, error: "Voting is closed for this round." };
   }
 
-  // 2. Verify candidate & no self-voting
   const { data: candidate } = await supabase
     .from("contributions")
     .select("author_id, vote_count")
@@ -281,7 +317,6 @@ export async function castVoteAction(roundId: string, contributionId: string) {
     return { success: false, error: "You cannot vote for your own contribution." };
   }
 
-  // 3. Check existing vote
   const { data: existingVote } = await supabase
     .from("votes")
     .select("id, contribution_id")
@@ -294,7 +329,6 @@ export async function castVoteAction(roundId: string, contributionId: string) {
       return { success: true, message: "Vote already recorded." };
     }
 
-    // Decrement previous
     const { data: prevCandidate } = await supabase
       .from("contributions")
       .select("vote_count")
@@ -308,13 +342,11 @@ export async function castVoteAction(roundId: string, contributionId: string) {
         .eq("id", existingVote.contribution_id);
     }
 
-    // Increment new
     await supabase
       .from("contributions")
       .update({ vote_count: candidate.vote_count + 1 })
       .eq("id", contributionId);
 
-    // Update vote record
     await supabase
       .from("votes")
       .update({ contribution_id: contributionId, updated_at: new Date().toISOString() })
@@ -323,7 +355,6 @@ export async function castVoteAction(roundId: string, contributionId: string) {
     return { success: true, message: "Vote switched to new candidate!" };
   }
 
-  // Cast first vote
   await supabase
     .from("contributions")
     .update({ vote_count: candidate.vote_count + 1 })
@@ -334,6 +365,10 @@ export async function castVoteAction(roundId: string, contributionId: string) {
     contribution_id: contributionId,
     voter_id: user.id,
   });
+
+  // Award XP for voting (+2 XP)
+  await awardXPInternal(user.id, "cast_vote", 2, `vote:${roundId}:${user.id}`);
+  await checkAndUnlockAchievementAction(user.id, "first_vote");
 
   return { success: true, message: "Vote recorded!" };
 }
@@ -347,6 +382,27 @@ export async function finalizeRoundAction(roundId: string) {
 
   if (error) {
     return { success: false, error: error.message };
+  }
+
+  // If winner resolved, award winner XP (+25 XP)
+  const winnerId = (data as any)?.winner_id;
+  if (winnerId) {
+    const { data: winnerContrib } = await supabase
+      .from("contributions")
+      .select("author_id, story_id")
+      .eq("id", winnerId)
+      .single();
+
+    if (winnerContrib) {
+      await awardXPInternal(
+        winnerContrib.author_id,
+        "win_round",
+        25,
+        `win_round:${roundId}:${winnerContrib.author_id}`,
+        { round_id: roundId, story_id: winnerContrib.story_id }
+      );
+      await checkAndUnlockAchievementAction(winnerContrib.author_id, "first_win");
+    }
   }
 
   revalidatePath("/", "layout");

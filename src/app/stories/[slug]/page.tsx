@@ -3,8 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { StoryReader } from "@/components/story/story-reader";
 import { ActiveRoundWidget, StoryRoundData } from "@/components/story/active-round-widget";
 import { StoryInteractionBar } from "@/components/story/story-interaction-bar";
+import { StoryReactionBar } from "@/components/economy/story-reaction-bar";
+import { GiftModal } from "@/components/economy/gift-modal";
 import { RemixModalTrigger } from "@/components/story/remix-modal-trigger";
-import { BookOpen, Users, Flame, CheckCircle2 } from "lucide-react";
+import { BookOpen, Users, Flame, CheckCircle2, DollarSign, Scale } from "lucide-react";
 import type { Metadata } from "next";
 
 interface StoryPageProps {
@@ -98,7 +100,6 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
 
     const currentRound = currentRoundRaw as any;
     if (currentRound) {
-      // Fetch competing candidates for this round
       const { data: candidatesRaw } = await supabase
         .from("contributions")
         .select(`
@@ -115,7 +116,6 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
         .eq("round_id", currentRound.id)
         .order("vote_count", { ascending: false });
 
-      // Check if logged-in user cast a vote in this round
       let userVotedContributionId: string | null = null;
       if (user) {
         const { data: userVoteRaw } = await supabase
@@ -180,7 +180,46 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
     .select("*", { count: "exact", head: true })
     .eq("story_id", story.id);
 
-  // Unique contributors calculation
+  // 5. Fetch free reactions
+  const { data: reactionsRaw } = await supabase
+    .from("story_reactions")
+    .select("reaction_type, user_id")
+    .eq("story_id", story.id);
+
+  const reactionCountsMap = new Map<string, { count: number; userReacted: boolean }>();
+  (reactionsRaw || []).forEach((r: any) => {
+    const existing = reactionCountsMap.get(r.reaction_type) || { count: 0, userReacted: false };
+    reactionCountsMap.set(r.reaction_type, {
+      count: existing.count + 1,
+      userReacted: existing.userReacted || (user ? r.user_id === user.id : false),
+    });
+  });
+
+  const initialReactions = Array.from(reactionCountsMap.entries()).map(([reaction, val]) => ({
+    reaction,
+    count: val.count,
+    userReacted: val.userReacted,
+  }));
+
+  // 6. Fetch revenue sharing policy
+  const { data: policyRaw } = await supabase
+    .from("author_revenue_policies")
+    .select("*")
+    .eq("story_id", story.id)
+    .order("version", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const policy = policyRaw as any;
+  const policyLabel =
+    policy?.policy_type === "contribution_weighted"
+      ? "Contribution Weighted (Proportional)"
+      : policy?.policy_type === "creator_and_collaborators"
+      ? `Creator Reserved (${policy.creator_reserved_percentage}%) + Collaborators Pool`
+      : policy?.policy_type === "weighted_roles"
+      ? "Weighted Paragraph Roles"
+      : "Equal Collaborators";
+
   const uniqueAuthors = new Set(segments.map((s) => s.author.id));
 
   return (
@@ -203,6 +242,12 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
               <Flame className="w-3.5 h-3.5" /> Round in Progress
             </span>
           )}
+
+          {/* Revenue Policy Badge */}
+          <span className="px-3 py-1 rounded-full border border-amber-700/20 bg-amber-700/5 text-amber-800 dark:text-amber-300 text-[11px] font-medium flex items-center gap-1">
+            <Scale className="w-3 h-3 text-amber-600" />
+            <span>Revenue Split: {policyLabel}</span>
+          </span>
         </div>
 
         <h1 className="font-serif text-3xl sm:text-5xl font-bold text-[var(--foreground)] tracking-tight leading-tight">
@@ -230,14 +275,27 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
             </span>
           </div>
 
-          <StoryInteractionBar
-            storyId={story.id}
-            initialLikes={likesCount || 0}
-            initialIsLiked={isLiked}
-            initialIsBookmarked={isBookmarked}
-            storyTitle={story.title}
-          />
+          <div className="flex items-center gap-2">
+            <GiftModal
+              storyId={story.id}
+              storyTitle={story.title}
+              uniqueAuthorsCount={uniqueAuthors.size}
+            />
+            <StoryInteractionBar
+              storyId={story.id}
+              initialLikes={likesCount || 0}
+              initialIsLiked={isLiked}
+              initialIsBookmarked={isBookmarked}
+              storyTitle={story.title}
+            />
+          </div>
         </div>
+
+        {/* Free Social Reactions Bar */}
+        <StoryReactionBar
+          storyId={story.id}
+          initialReactions={initialReactions}
+        />
       </div>
 
       {/* Published Story Paragraphs Reader */}
@@ -250,14 +308,14 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
         />
       </section>
 
-      {/* Active Round Voting and Submissions (if story is active) */}
+      {/* Active Round Voting and Submissions */}
       {roundData && story.status !== "completed" && (
         <section className="border-t border-[var(--border)] pt-8">
           <ActiveRoundWidget round={roundData} storyId={story.id} />
         </section>
       )}
 
-      {/* Remix Trigger (if story is completed) */}
+      {/* Remix Trigger */}
       {story.status === "completed" && (
         <section className="border-t border-[var(--border)] pt-8">
           <RemixModalTrigger

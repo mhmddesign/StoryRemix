@@ -14,6 +14,18 @@ export type RoundResolutionType = "threshold_met" | "creator_override" | "round_
 export type ContributionStatus = "active" | "winner" | "eliminated" | "withdrawn";
 export type ReportStatus = "pending" | "reviewing" | "resolved" | "dismissed";
 
+export type CreativePathType = "storyteller" | "collaborator" | "explorer" | "curator" | "worldbuilder" | "patron";
+export type AchievementRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
+export type AchievementCategory = "writing" | "collaboration" | "discovery" | "support";
+export type ChallengePeriodType = "daily" | "weekly";
+export type RevenuePolicyType = "equal_collaborators" | "contribution_weighted" | "creator_and_collaborators" | "weighted_roles";
+export type GiftTransactionStatus = "pending" | "completed" | "refunded" | "failed";
+export type LeaderboardPeriodType = "today" | "week" | "month" | "year" | "all_time";
+export type LeaderboardCategory = "hot" | "trending" | "best_today" | "best_week" | "best_month" | "best_year" | "all_time" | "top_creators";
+export type CompetitionStatus = "draft" | "active" | "judging" | "awarded" | "cancelled";
+export type FinancialAccountType = "platform_revenue" | "creator_escrow" | "creator_payout" | "refund_escrow";
+export type LedgerEntryType = "debit" | "credit";
+
 export interface Database {
   public: {
     Tables: {
@@ -339,6 +351,675 @@ export interface Database {
           id?: string;
           story_id?: string;
           user_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      story_reactions: {
+        Row: {
+          id: string;
+          story_id: string;
+          segment_id: string | null;
+          user_id: string;
+          reaction_type: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          story_id: string;
+          segment_id?: string | null;
+          user_id: string;
+          reaction_type: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          story_id?: string;
+          segment_id?: string | null;
+          user_id?: string;
+          reaction_type?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      level_definitions: {
+        Row: {
+          level: number;
+          title: string;
+          xp_required: number;
+          badge_icon: string;
+          created_at: string;
+        };
+        Insert: {
+          level: number;
+          title: string;
+          xp_required: number;
+          badge_icon: string;
+          created_at?: string;
+        };
+        Update: {
+          level?: number;
+          title?: string;
+          xp_required?: number;
+          badge_icon?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      user_gamification: {
+        Row: {
+          user_id: string;
+          lifetime_xp: number;
+          current_level: number;
+          creative_path: CreativePathType;
+          calculated_archetype: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          lifetime_xp?: number;
+          current_level?: number;
+          creative_path?: CreativePathType;
+          calculated_archetype?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          lifetime_xp?: number;
+          current_level?: number;
+          creative_path?: CreativePathType;
+          calculated_archetype?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      xp_transactions: {
+        Row: {
+          id: string;
+          user_id: string;
+          amount: number;
+          activity_type: string;
+          event_id: string;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          amount: number;
+          activity_type: string;
+          event_id: string;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          amount?: number;
+          activity_type?: string;
+          event_id?: string;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      achievement_definitions: {
+        Row: {
+          id: string;
+          code: string;
+          title: string;
+          description: string;
+          category: AchievementCategory;
+          rarity: AchievementRarity;
+          xp_reward: number;
+          icon: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          title: string;
+          description: string;
+          category: AchievementCategory;
+          rarity?: AchievementRarity;
+          xp_reward?: number;
+          icon: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          code?: string;
+          title?: string;
+          description?: string;
+          category?: AchievementCategory;
+          rarity?: AchievementRarity;
+          xp_reward?: number;
+          icon?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      user_achievements: {
+        Row: {
+          id: string;
+          user_id: string;
+          achievement_id: string;
+          unlocked_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          achievement_id: string;
+          unlocked_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          achievement_id?: string;
+          unlocked_at?: string;
+        };
+        Relationships: [];
+      };
+      challenge_definitions: {
+        Row: {
+          id: string;
+          code: string;
+          title: string;
+          description: string;
+          period_type: ChallengePeriodType;
+          target_count: number;
+          activity_type: string;
+          xp_reward: number;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          title: string;
+          description: string;
+          period_type: ChallengePeriodType;
+          target_count: number;
+          activity_type: string;
+          xp_reward: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          code?: string;
+          title?: string;
+          description?: string;
+          period_type?: ChallengePeriodType;
+          target_count?: number;
+          activity_type?: string;
+          xp_reward?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      user_challenge_progress: {
+        Row: {
+          id: string;
+          user_id: string;
+          challenge_id: string;
+          period_identifier: string;
+          current_count: number;
+          is_completed: boolean;
+          completed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          challenge_id: string;
+          period_identifier: string;
+          current_count?: number;
+          is_completed?: boolean;
+          completed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          challenge_id?: string;
+          period_identifier?: string;
+          current_count?: number;
+          is_completed?: boolean;
+          completed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      gift_catalog: {
+        Row: {
+          id: string;
+          code: string;
+          name: string;
+          symbol: string;
+          price_cents: number;
+          creator_share_basis_points: number;
+          platform_fee_basis_points: number;
+          is_active: boolean;
+          description: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          name: string;
+          symbol: string;
+          price_cents: number;
+          creator_share_basis_points?: number;
+          platform_fee_basis_points?: number;
+          is_active?: boolean;
+          description?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          code?: string;
+          name?: string;
+          symbol?: string;
+          price_cents?: number;
+          creator_share_basis_points?: number;
+          platform_fee_basis_points?: number;
+          is_active?: boolean;
+          description?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      author_revenue_policies: {
+        Row: {
+          id: string;
+          story_id: string;
+          policy_type: RevenuePolicyType;
+          creator_reserved_percentage: number | null;
+          opening_paragraph_weight: number | null;
+          continuation_paragraph_weight: number | null;
+          final_paragraph_weight: number | null;
+          version: number;
+          is_locked: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          story_id: string;
+          policy_type?: RevenuePolicyType;
+          creator_reserved_percentage?: number | null;
+          opening_paragraph_weight?: number | null;
+          continuation_paragraph_weight?: number | null;
+          final_paragraph_weight?: number | null;
+          version?: number;
+          is_locked?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          story_id?: string;
+          policy_type?: RevenuePolicyType;
+          creator_reserved_percentage?: number | null;
+          opening_paragraph_weight?: number | null;
+          continuation_paragraph_weight?: number | null;
+          final_paragraph_weight?: number | null;
+          version?: number;
+          is_locked?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      contributor_policy_consents: {
+        Row: {
+          id: string;
+          story_id: string;
+          policy_id: string;
+          user_id: string;
+          consented_at: string;
+        };
+        Insert: {
+          id?: string;
+          story_id: string;
+          policy_id: string;
+          user_id: string;
+          consented_at?: string;
+        };
+        Update: {
+          id?: string;
+          story_id?: string;
+          policy_id?: string;
+          user_id?: string;
+          consented_at?: string;
+        };
+        Relationships: [];
+      };
+      gift_transactions: {
+        Row: {
+          id: string;
+          gift_id: string;
+          story_id: string;
+          segment_id: string | null;
+          sender_id: string;
+          amount_cents: number;
+          creator_pool_cents: number;
+          platform_fee_cents: number;
+          status: GiftTransactionStatus;
+          payment_reference: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          gift_id: string;
+          story_id: string;
+          segment_id?: string | null;
+          sender_id: string;
+          amount_cents: number;
+          creator_pool_cents: number;
+          platform_fee_cents: number;
+          status?: GiftTransactionStatus;
+          payment_reference?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          gift_id?: string;
+          story_id?: string;
+          segment_id?: string | null;
+          sender_id?: string;
+          amount_cents?: number;
+          creator_pool_cents?: number;
+          platform_fee_cents?: number;
+          status?: GiftTransactionStatus;
+          payment_reference?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      gift_allocations: {
+        Row: {
+          id: string;
+          gift_transaction_id: string;
+          recipient_id: string;
+          allocated_cents: number;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          gift_transaction_id: string;
+          recipient_id: string;
+          allocated_cents: number;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          gift_transaction_id?: string;
+          recipient_id?: string;
+          allocated_cents?: number;
+          status?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      financial_transactions: {
+        Row: {
+          id: string;
+          reference_type: string;
+          reference_id: string;
+          amount_cents: number;
+          currency: string;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          reference_type: string;
+          reference_id: string;
+          amount_cents: number;
+          currency?: string;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          reference_type?: string;
+          reference_id?: string;
+          amount_cents?: number;
+          currency?: string;
+          status?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      financial_ledger_entries: {
+        Row: {
+          id: string;
+          transaction_id: string;
+          account_type: FinancialAccountType;
+          account_id: string;
+          entry_type: LedgerEntryType;
+          amount_cents: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          transaction_id: string;
+          account_type: FinancialAccountType;
+          account_id: string;
+          entry_type: LedgerEntryType;
+          amount_cents: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          transaction_id?: string;
+          account_type?: FinancialAccountType;
+          account_id?: string;
+          entry_type?: LedgerEntryType;
+          amount_cents?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      payout_accounts: {
+        Row: {
+          user_id: string;
+          payout_provider: string;
+          provider_account_id: string | null;
+          kyc_status: string;
+          country_code: string;
+          is_payout_enabled: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          payout_provider?: string;
+          provider_account_id?: string | null;
+          kyc_status?: string;
+          country_code?: string;
+          is_payout_enabled?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          payout_provider?: string;
+          provider_account_id?: string | null;
+          kyc_status?: string;
+          country_code?: string;
+          is_payout_enabled?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      leaderboard_snapshots: {
+        Row: {
+          id: string;
+          period_type: LeaderboardPeriodType;
+          ranking_category: LeaderboardCategory;
+          period_start: string;
+          period_end: string;
+          snapshot_time: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          period_type: LeaderboardPeriodType;
+          ranking_category: LeaderboardCategory;
+          period_start: string;
+          period_end: string;
+          snapshot_time?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          period_type?: LeaderboardPeriodType;
+          ranking_category?: LeaderboardCategory;
+          period_start?: string;
+          period_end?: string;
+          snapshot_time?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      leaderboard_entries: {
+        Row: {
+          id: string;
+          snapshot_id: string;
+          rank: number;
+          target_type: "story" | "creator";
+          target_id: string;
+          score: number;
+          score_breakdown: Json;
+          metadata: Json;
+        };
+        Insert: {
+          id?: string;
+          snapshot_id: string;
+          rank: number;
+          target_type: "story" | "creator";
+          target_id: string;
+          score: number;
+          score_breakdown?: Json;
+          metadata?: Json;
+        };
+        Update: {
+          id?: string;
+          snapshot_id?: string;
+          rank?: number;
+          target_type?: "story" | "creator";
+          target_id?: string;
+          score?: number;
+          score_breakdown?: Json;
+          metadata?: Json;
+        };
+        Relationships: [];
+      };
+      prize_competitions: {
+        Row: {
+          id: string;
+          title: string;
+          description: string | null;
+          period_type: "monthly" | "annual";
+          start_date: string;
+          end_date: string;
+          prize_amount_cents: number;
+          currency: string;
+          funding_source: string;
+          is_funded: boolean;
+          status: CompetitionStatus;
+          rules_terms: string;
+          winner_story_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string | null;
+          period_type: "monthly" | "annual";
+          start_date: string;
+          end_date: string;
+          prize_amount_cents: number;
+          currency?: string;
+          funding_source: string;
+          is_funded?: boolean;
+          status?: CompetitionStatus;
+          rules_terms: string;
+          winner_story_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          description?: string | null;
+          period_type?: "monthly" | "annual";
+          start_date?: string;
+          end_date?: string;
+          prize_amount_cents?: number;
+          currency?: string;
+          funding_source?: string;
+          is_funded?: boolean;
+          status?: CompetitionStatus;
+          rules_terms?: string;
+          winner_story_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      prize_awards: {
+        Row: {
+          id: string;
+          competition_id: string;
+          story_id: string;
+          award_rank: number;
+          prize_amount_cents: number;
+          award_badge_code: string;
+          status: string;
+          awarded_at: string;
+        };
+        Insert: {
+          id?: string;
+          competition_id: string;
+          story_id: string;
+          award_rank?: number;
+          prize_amount_cents?: number;
+          award_badge_code: string;
+          status?: string;
+          awarded_at?: string;
+        };
+        Update: {
+          id?: string;
+          competition_id?: string;
+          story_id?: string;
+          award_rank?: number;
+          prize_amount_cents?: number;
+          award_badge_code?: string;
+          status?: string;
+          awarded_at?: string;
+        };
+        Relationships: [];
+      };
+      prize_allocation_records: {
+        Row: {
+          id: string;
+          prize_award_id: string;
+          recipient_id: string;
+          allocated_cents: number;
+          percentage: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          prize_award_id: string;
+          recipient_id: string;
+          allocated_cents: number;
+          percentage: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          prize_award_id?: string;
+          recipient_id?: string;
+          allocated_cents?: number;
+          percentage?: number;
           created_at?: string;
         };
         Relationships: [];
@@ -698,6 +1379,27 @@ export interface Database {
         };
         Returns: Json;
       };
+      award_xp: {
+        Args: {
+          p_user_id: string;
+          p_activity_type: string;
+          p_amount: number;
+          p_event_id: string;
+          p_metadata?: Json;
+        };
+        Returns: Json;
+      };
+      calculate_story_revenue_shares: {
+        Args: {
+          p_story_id: string;
+          p_pool_cents: number;
+        };
+        Returns: {
+          author_id: string;
+          allocated_cents: number;
+          share_percentage: number;
+        }[];
+      };
     };
     Enums: {
       user_role: UserRole;
@@ -707,6 +1409,17 @@ export interface Database {
       round_resolution_type: RoundResolutionType;
       contribution_status: ContributionStatus;
       report_status: ReportStatus;
+      creative_path_type: CreativePathType;
+      achievement_rarity: AchievementRarity;
+      achievement_category: AchievementCategory;
+      challenge_period_type: ChallengePeriodType;
+      revenue_policy_type: RevenuePolicyType;
+      gift_transaction_status: GiftTransactionStatus;
+      leaderboard_period_type: LeaderboardPeriodType;
+      leaderboard_category: LeaderboardCategory;
+      competition_status: CompetitionStatus;
+      financial_account_type: FinancialAccountType;
+      ledger_entry_type: LedgerEntryType;
     };
     CompositeTypes: {
       [_ in never]: never;

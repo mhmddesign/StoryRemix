@@ -7,27 +7,39 @@ import {
   Flame,
   CheckCircle2,
   Clock,
-  Compass,
   ArrowRight,
   BookOpen,
-  Users,
+  TrendingUp,
+  Award,
+  Bookmark,
+  LogIn,
 } from "lucide-react";
+import { calculateHotScore, calculateTrendingScore } from "@/lib/leaderboards";
 
-export default async function HomePage() {
+interface HomePageProps {
+  searchParams: Promise<{
+    tab?: string;
+  }>;
+}
+
+const FEED_TABS = [
+  { id: "hot", label: "Hot", icon: Flame, desc: "Active rounds & voting momentum" },
+  { id: "for-you", label: "For You", icon: Sparkles, desc: "Personalized literary recommendations" },
+  { id: "trending", label: "Trending", icon: TrendingUp, desc: "Fastest-moving story arcs" },
+  { id: "new", label: "New Seeds", icon: Clock, desc: "Freshly planted story openings" },
+  { id: "week", label: "Best of This Week", icon: Award, desc: "Top-voted stories of the current cycle" },
+  { id: "completed", label: "Completed", icon: CheckCircle2, desc: "Finished canonical stories" },
+  { id: "saved", label: "Saved", icon: Bookmark, desc: "Your personal reading list" },
+];
+
+export default async function HomePage({ searchParams }: HomePageProps) {
+  const { tab = "hot" } = await searchParams;
+  const activeTab = FEED_TABS.some((t) => t.id === tab) ? tab : "hot";
+
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // 1. Fetch active stories with their rounds & owners
-  const { data: storiesRaw } = await supabase
-    .from("stories")
-    .select(`
-      *,
-      owner:profiles!stories_owner_id_fkey(id, username, display_name, avatar_url),
-      rounds:story_rounds(id, round_number, paragraph_position, deadline_at, status)
-    `)
-    .eq("visibility", "public")
-    .order("created_at", { ascending: false })
-    .limit(12);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // Fetch likes & bookmarks for current user if signed in
   const userLikes = new Set<string>();
@@ -47,7 +59,46 @@ export default async function HomePage() {
     bmarks?.forEach((b) => userBookmarks.add(b.story_id));
   }
 
-  const stories: StoryCardData[] = (storiesRaw || []).map((s: any) => {
+  // Construct query based on active tab
+  let query = supabase
+    .from("stories")
+    .select(`
+      *,
+      owner:profiles!stories_owner_id_fkey(id, username, display_name, avatar_url),
+      rounds:story_rounds(id, round_number, paragraph_position, deadline_at, status),
+      segments:story_segments(id, author_id)
+    `)
+    .eq("visibility", "public");
+
+  let requiresAuthPrompt = false;
+
+  if (activeTab === "saved") {
+    if (!user) {
+      requiresAuthPrompt = true;
+    } else {
+      const savedIds = Array.from(userBookmarks);
+      if (savedIds.length > 0) {
+        query = query.in("id", savedIds);
+      } else {
+        query = query.in("id", ["none"]); // empty result
+      }
+    }
+  } else if (activeTab === "completed") {
+    query = query.eq("status", "completed").order("updated_at", { ascending: false }).limit(18);
+  } else if (activeTab === "new") {
+    query = query.order("created_at", { ascending: false }).limit(18);
+  } else if (activeTab === "week") {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+    query = query.gte("created_at", sevenDaysAgo).order("created_at", { ascending: false }).limit(18);
+  } else {
+    // For Hot, Trending, or For-You
+    query = query.limit(30);
+  }
+
+  const { data: rawStories } = requiresAuthPrompt ? { data: [] } : await query;
+
+  // Transform raw stories into Card Data
+  let stories: StoryCardData[] = (rawStories || []).map((s: any) => {
     const openRound = s.rounds?.find((r: any) =>
       ["open", "evaluating", "awaiting_creator_resolution"].includes(r.status)
     );
@@ -81,11 +132,50 @@ export default async function HomePage() {
     };
   });
 
-  const activeStories = stories.filter((s) => s.status === "active");
-  const completedStories = stories.filter((s) => s.status === "completed");
+  // Apply tab-specific sorting algorithms
+  if (activeTab === "hot") {
+    stories.sort((a, b) => {
+      const rawA = (rawStories || []).find((s: any) => s.id === a.id);
+      const rawB = (rawStories || []).find((s: any) => s.id === b.id);
+
+      const uniqueA = new Set(rawA?.segments?.map((seg: any) => seg.author_id)).size;
+      const uniqueB = new Set(rawB?.segments?.map((seg: any) => seg.author_id)).size;
+
+      const scoreA = calculateHotScore(
+        a.active_round ? 5 : 1,
+        uniqueA,
+        userLikes.has(a.id) ? 1 : 0,
+        rawA?.updated_at || rawA?.created_at || new Date().toISOString()
+      );
+      const scoreB = calculateHotScore(
+        b.active_round ? 5 : 1,
+        uniqueB,
+        userLikes.has(b.id) ? 1 : 0,
+        rawB?.updated_at || rawB?.created_at || new Date().toISOString()
+      );
+
+      return scoreB - scoreA;
+    });
+  } else if (activeTab === "trending") {
+    stories.sort((a, b) => {
+      const rawA = (rawStories || []).find((s: any) => s.id === a.id);
+      const rawB = (rawStories || []).find((s: any) => s.id === b.id);
+
+      const uniqueA = new Set(rawA?.segments?.map((seg: any) => seg.author_id)).size;
+      const uniqueB = new Set(rawB?.segments?.map((seg: any) => seg.author_id)).size;
+
+      const scoreA = calculateTrendingScore(a.active_round ? 10 : 2, uniqueA, 2);
+      const scoreB = calculateTrendingScore(b.active_round ? 10 : 2, uniqueB, 2);
+
+      return scoreB - scoreA;
+    });
+  }
+
+  const currentTabObj = FEED_TABS.find((t) => t.id === activeTab) || FEED_TABS[0];
+  const TabIcon = currentTabObj.icon;
 
   return (
-    <div className="space-y-16 py-4">
+    <div className="space-y-14 py-4">
       {/* Literary Hero */}
       <section className="relative p-8 sm:p-14 rounded-3xl border border-[var(--border)] bg-gradient-to-br from-amber-700/5 via-[var(--card)] to-amber-700/10 shadow-sm text-center sm:text-left overflow-hidden">
         <div className="max-w-2xl space-y-6">
@@ -115,7 +205,15 @@ export default async function HomePage() {
               href="/explore"
               className="px-6 py-3 rounded-xl border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--accent)] text-[var(--foreground)] font-semibold text-xs sm:text-sm transition-all"
             >
-              <span>Explore Active Rounds</span>
+              <span>Explore Library</span>
+            </Link>
+
+            <Link
+              href="/leaderboards"
+              className="px-6 py-3 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:border-amber-700/50 text-[var(--foreground)] font-semibold text-xs sm:text-sm transition-all flex items-center gap-1.5"
+            >
+              <Award className="w-4 h-4 text-amber-600" />
+              <span>Rankings</span>
             </Link>
           </div>
         </div>
@@ -165,40 +263,74 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Active Stories & Open Voting Rounds */}
+      {/* Discovery Feeds */}
       <section className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border)] pb-4">
           <div className="space-y-1">
             <h2 className="font-serif text-2xl font-bold text-[var(--foreground)] flex items-center gap-2">
-              <Flame className="w-5 h-5 text-amber-600" />
-              Active Collaborative Rounds
+              <TabIcon className="w-5 h-5 text-amber-600" />
+              <span>{currentTabObj.label}</span>
             </h2>
             <p className="text-xs text-[var(--muted-foreground)]">
-              Stories currently seeking their next community-voted paragraph.
+              {currentTabObj.desc}
             </p>
           </div>
 
-          <Link
-            href="/rounds"
-            className="text-xs font-semibold text-amber-700 hover:underline flex items-center gap-1"
-          >
-            <span>View All</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          {/* Feed Filter Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+            {FEED_TABS.map((t) => {
+              const Icon = t.icon;
+              const isActive = activeTab === t.id;
+              return (
+                <Link
+                  key={t.id}
+                  href={t.id === "hot" ? "/" : `/?tab=${t.id}`}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                    isActive
+                      ? "bg-amber-800 text-white shadow-sm"
+                      : "bg-[var(--card)] border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-amber-700/30"
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{t.label}</span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
 
-        {activeStories.length === 0 ? (
+        {/* Feed Content */}
+        {requiresAuthPrompt ? (
+          <div className="p-12 rounded-2xl border border-dashed border-[var(--border)] text-center space-y-3">
+            <Bookmark className="w-10 h-10 text-[var(--muted-foreground)] mx-auto opacity-40" />
+            <h3 className="font-semibold text-base text-[var(--foreground)]">
+              Sign in to view your reading list
+            </h3>
+            <p className="text-xs text-[var(--muted-foreground)] max-w-sm mx-auto">
+              Save captivating stories to follow their narrative evolution and cast votes in upcoming rounds.
+            </p>
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-800 text-white text-xs font-semibold mt-2 cursor-pointer"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </Link>
+          </div>
+        ) : stories.length === 0 ? (
           <div className="p-12 rounded-2xl border border-dashed border-[var(--border)] text-center space-y-3">
             <BookOpen className="w-10 h-10 text-[var(--muted-foreground)] mx-auto opacity-40" />
             <h3 className="font-semibold text-base text-[var(--foreground)]">
-              No active stories right now
+              No stories found in this view
             </h3>
             <p className="text-xs text-[var(--muted-foreground)] max-w-sm mx-auto">
-              Be the first to plant a story seed and invite the community to continue it!
+              {activeTab === "saved"
+                ? "You haven't bookmarked any stories yet. Explore the community feeds to find your first favorite!"
+                : "Be the first to plant a story seed in this collection!"}
             </p>
             <Link
               href="/stories/new"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-800 text-white text-xs font-semibold mt-2"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-800 text-white text-xs font-semibold mt-2 cursor-pointer"
             >
               <Feather className="w-3.5 h-3.5" />
               <span>Start Story</span>
@@ -206,41 +338,37 @@ export default async function HomePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeStories.map((story) => (
+            {stories.map((story) => (
               <StoryCard key={story.id} story={story} />
             ))}
           </div>
         )}
       </section>
 
-      {/* Completed Anthology */}
-      {completedStories.length > 0 && (
-        <section className="space-y-6 pt-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h2 className="font-serif text-2xl font-bold text-[var(--foreground)] flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                Completed Anthology
-              </h2>
+      {/* Completed Anthology Callout (if on active tab) */}
+      {activeTab !== "completed" && (
+        <section className="p-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-serif font-bold text-sm text-[var(--foreground)]">
+                Looking for finished stories?
+              </h4>
               <p className="text-xs text-[var(--muted-foreground)]">
-                Stories that reached their planned conclusion. Ready to read and remix.
+                Browse our completed anthology to read full collaborative works and create story remixes.
               </p>
             </div>
-
-            <Link
-              href="/completed"
-              className="text-xs font-semibold text-amber-700 hover:underline flex items-center gap-1"
-            >
-              <span>View All</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {completedStories.map((story) => (
-              <StoryCard key={story.id} story={story} />
-            ))}
-          </div>
+          <Link
+            href="/?tab=completed"
+            className="px-4 py-2 rounded-xl border border-[var(--border)] hover:bg-[var(--accent)] text-xs font-semibold text-[var(--foreground)] flex items-center gap-1.5 shrink-0 transition-colors"
+          >
+            <span>View Completed Stories</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </section>
       )}
     </div>
