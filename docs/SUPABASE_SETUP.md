@@ -39,6 +39,17 @@ To ensure the `avatars` and `story-covers` storage buckets and least-privilege s
    `supabase/migrations/20261123_least_privilege_and_storage.sql`
 3. This creates the storage buckets with public read policies and restricts `anon` table access to explicit read-only permissions while keeping full authenticated CRUD protected by RLS.
 
+### Atomic Story Creation & Profile Self-Healing Migration:
+To backfill existing users who signed up before profile triggers ran and enable atomic story launches:
+1. Open the [Supabase SQL Editor](https://supabase.com/dashboard/project/ysrxzzscfttsiscdpiby/sql).
+2. Run the additive migration:
+   `supabase/migrations/20261123_atomic_story_and_profile_repair.sql`
+3. This:
+   - Grants authenticated users `INSERT` permission on `public.profiles` (`WITH CHECK (auth.uid() = id)`).
+   - Re-attaches a hardened `handle_new_user()` trigger on `auth.users`.
+   - Backfills missing profiles and `user_gamification` for all existing `auth.users`.
+   - Installs the atomic `create_story_transaction(...)` RPC function ensuring story, segment 1, round 1, and revenue policy are created in a single database transaction.
+
 ---
 
 ## 3. Database Schema Overview

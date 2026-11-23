@@ -81,6 +81,36 @@ export async function ensureUserProfile() {
     .single();
 
   if (insertError) {
+    // Attempt with admin client to bypass any missing RLS INSERT policy
+    try {
+      const admin = createAdminClient();
+      const { data: adminInserted, error: adminError } = await admin
+        .from("profiles")
+        .upsert(newProfile, { onConflict: "id" })
+        .select()
+        .single();
+
+      if (adminInserted) {
+        try {
+          await admin.from("user_gamification").upsert(
+            {
+              user_id: user.id,
+              lifetime_xp: 0,
+              current_level: 1,
+              creative_path: "storyteller",
+              calculated_archetype: "Emerging Scribe",
+            },
+            { onConflict: "user_id" }
+          );
+        } catch {
+          // Ignore
+        }
+        return { success: true, profile: adminInserted };
+      }
+    } catch (e) {
+      console.error("Admin profile recovery error:", e);
+    }
+
     // If concurrent insert happened, return existing
     const { data: fallback } = await supabase
       .from("profiles")

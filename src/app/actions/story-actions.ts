@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { analyzeStoryText } from "@/lib/sentence-tokenizer";
 import { slugify } from "@/lib/utils";
 import { awardXPInternal, checkAndUnlockAchievementAction } from "./gamification-actions";
+import { ensureUserProfile } from "./auth-actions";
 import { RevenuePolicyType } from "@/types/database";
 import { z } from "zod";
 
@@ -87,78 +88,132 @@ export async function createStoryAction(formData: FormData) {
 
   const slug = slugify(values.title);
 
-  // 1. Insert Story
-  const { data: story, error: storyError } = await supabase
-    .from("stories")
-    .insert({
-      owner_id: user.id,
-      title: values.title,
-      slug,
-      description: values.description || null,
-      genre: values.genre,
-      tags: values.tags,
-      language: values.language,
-      visibility: values.visibility,
-      max_paragraphs: values.maxParagraphs,
-      current_paragraph_count: 1,
-      default_vote_threshold: values.defaultVoteThreshold,
-      default_round_duration: values.defaultRoundDuration,
-      cover_image_url: values.coverImageUrl || null,
-      cover_alt_text: values.coverAltText || null,
-      status: "active",
-    })
-    .select()
-    .single();
-
-  if (storyError || !story) {
-    return { success: false, error: storyError?.message || "Failed to create story." };
+  // 1. Ensure author profile is provisioned and valid (resolves foreign key stories_owner_id_fkey)
+  const profileResult = await ensureUserProfile();
+  if (!profileResult.success || !profileResult.profile) {
+    console.error("Profile resolution failure:", profileResult.error);
+    return {
+      success: false,
+      error: "Unable to establish author profile. Please try refreshing your session.",
+    };
   }
 
-  // 2. Insert opening paragraph into canonical story_segments (paragraph_index: 1)
-  const { error: segmentError } = await supabase.from("story_segments").insert({
-    story_id: story.id,
-    paragraph_index: 1,
-    author_id: user.id,
-    body: values.openingText.trim(),
-    vote_count_at_lock: 0,
+  const verifiedOwnerId = profileResult.profile.id;
+
+  let createdStoryId: string | null = null;
+  let createdStorySlug: string | null = null;
+
+  // 2. Attempt atomic creation via database RPC
+  const { data: rpcResult, error: rpcError } = await supabase.rpc("create_story_transaction", {
+    p_title: values.title,
+    p_slug: slug,
+    p_description: values.description || null,
+    p_genre: values.genre,
+    p_tags: values.tags,
+    p_language: values.language,
+    p_visibility: values.visibility,
+    p_max_paragraphs: values.maxParagraphs,
+    p_default_vote_threshold: values.defaultVoteThreshold,
+    p_default_round_duration: values.defaultRoundDuration,
+    p_cover_image_url: values.coverImageUrl || null,
+    p_cover_alt_text: values.coverAltText || null,
+    p_opening_text: values.openingText.trim(),
+    p_revenue_policy_type: values.revenuePolicyType,
+    p_creator_reserved_percentage: values.creatorReservedPercentage,
+    p_opening_paragraph_weight: values.openingParagraphWeight,
+    p_continuation_paragraph_weight: values.continuationParagraphWeight,
+    p_final_paragraph_weight: values.finalParagraphWeight,
   });
 
-  if (segmentError) {
-    return { success: false, error: "Failed to initialize opening story paragraph." };
+  if (!rpcError && rpcResult && (rpcResult as any).id) {
+    createdStoryId = (rpcResult as any).id;
+    createdStorySlug = (rpcResult as any).slug || slug;
+  } else {
+    // Fallback: execute sequential inserts with guaranteed verified owner ID
+    if (rpcError) {
+      console.warn("create_story_transaction RPC fallback:", rpcError.message);
+    }
+
+    const { data: story, error: storyError } = await supabase
+      .from("stories")
+      .insert({
+        owner_id: verifiedOwnerId,
+        title: values.title,
+        slug,
+        description: values.description || null,
+        genre: values.genre,
+        tags: values.tags,
+        language: values.language,
+        visibility: values.visibility,
+        max_paragraphs: values.maxParagraphs,
+        current_paragraph_count: 1,
+        default_vote_threshold: values.defaultVoteThreshold,
+        default_round_duration: values.defaultRoundDuration,
+        cover_image_url: values.coverImageUrl || null,
+        cover_alt_text: values.coverAltText || null,
+        status: "active",
+      })
+      .select()
+      .single();
+
+    if (storyError || !story) {
+      return {
+        success: false,
+        error: storyError?.message?.includes("foreign key")
+          ? "Author profile was not found. Please refresh and try again."
+          : storyError?.message || "Failed to create story.",
+      };
+    }
+
+    createdStoryId = story.id;
+    createdStorySlug = story.slug;
+
+    // 2. Insert opening paragraph into canonical story_segments (paragraph_index: 1)
+    const { error: segmentError } = await supabase.from("story_segments").insert({
+      story_id: story.id,
+      paragraph_index: 1,
+      author_id: verifiedOwnerId,
+      body: values.openingText.trim(),
+      vote_count_at_lock: 0,
+    });
+
+    if (segmentError) {
+      return { success: false, error: "Failed to initialize opening story paragraph." };
+    }
+
+    // 3. Open Round 1 for Paragraph 2
+    const deadline = new Date(Date.now() + values.defaultRoundDuration * 1000).toISOString();
+
+    const { error: roundError } = await supabase.from("story_rounds").insert({
+      story_id: story.id,
+      round_number: 1,
+      paragraph_position: 2,
+      vote_threshold: values.defaultVoteThreshold,
+      opened_at: new Date().toISOString(),
+      deadline_at: deadline,
+      status: "open",
+    });
+
+    if (roundError) {
+      return { success: false, error: "Failed to open round 1." };
+    }
+
+    // 4. Save Revenue Sharing Policy
+    await supabase.from("author_revenue_policies").insert({
+      story_id: story.id,
+      policy_type: values.revenuePolicyType,
+      creator_reserved_percentage: values.creatorReservedPercentage,
+      opening_paragraph_weight: values.openingParagraphWeight,
+      continuation_paragraph_weight: values.continuationParagraphWeight,
+      final_paragraph_weight: values.finalParagraphWeight,
+      version: 1,
+      is_locked: false,
+    });
   }
-
-  // 3. Open Round 1 for Paragraph 2
-  const deadline = new Date(Date.now() + values.defaultRoundDuration * 1000).toISOString();
-
-  const { error: roundError } = await supabase.from("story_rounds").insert({
-    story_id: story.id,
-    round_number: 1,
-    paragraph_position: 2,
-    vote_threshold: values.defaultVoteThreshold,
-    opened_at: new Date().toISOString(),
-    deadline_at: deadline,
-    status: "open",
-  });
-
-  if (roundError) {
-    return { success: false, error: "Failed to open round 1." };
-  }
-
-  // 4. Save Revenue Sharing Policy
-  await supabase.from("author_revenue_policies").insert({
-    story_id: story.id,
-    policy_type: values.revenuePolicyType,
-    creator_reserved_percentage: values.creatorReservedPercentage,
-    opening_paragraph_weight: values.openingParagraphWeight,
-    continuation_paragraph_weight: values.continuationParagraphWeight,
-    final_paragraph_weight: values.finalParagraphWeight,
-    version: 1,
-    is_locked: false,
-  });
 
   // 5. Award Creator XP & Unlock Achievements
-  await awardXPInternal(user.id, "publish_story", 25, `story_created:${story.id}`, {
-    story_id: story.id,
+  await awardXPInternal(user.id, "publish_story", 25, `story_created:${createdStoryId}`, {
+    story_id: createdStoryId,
   });
   await checkAndUnlockAchievementAction(user.id, "first_story");
 
@@ -167,7 +222,7 @@ export async function createStoryAction(formData: FormData) {
     event_name: "story_created",
     user_id: user.id,
     properties: {
-      story_id: story.id,
+      story_id: createdStoryId,
       genre: values.genre,
       max_paragraphs: values.maxParagraphs,
       vote_threshold: values.defaultVoteThreshold,
@@ -177,7 +232,7 @@ export async function createStoryAction(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/explore");
-  return { success: true, slug: story.slug };
+  return { success: true, slug: createdStorySlug };
 }
 
 export async function submitContinuationAction(
@@ -191,6 +246,9 @@ export async function submitContinuationAction(
   if (authError || !user) {
     return { success: false, error: "You must be signed in to submit a continuation." };
   }
+
+  // Ensure author profile is provisioned
+  await ensureUserProfile();
 
   const analysis = analyzeStoryText(body);
   if (!analysis.isValidForContinuation) {
@@ -282,6 +340,9 @@ export async function castVoteAction(roundId: string, contributionId: string) {
   if (authError || !user) {
     return { success: false, error: "You must be signed in to vote." };
   }
+
+  // Ensure voter profile is provisioned
+  await ensureUserProfile();
 
   // Attempt using the secure PostgreSQL stored procedure
   const { data: rpcData, error: rpcError } = await supabase.rpc("cast_vote", {

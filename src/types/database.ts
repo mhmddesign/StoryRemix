@@ -1518,6 +1518,29 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
+      create_story_transaction: {
+        Args: {
+          p_title: string;
+          p_slug: string;
+          p_description?: string | null;
+          p_genre: string;
+          p_tags?: string[] | null;
+          p_language: string;
+          p_visibility: string;
+          p_max_paragraphs: number;
+          p_default_vote_threshold: number;
+          p_default_round_duration: number;
+          p_cover_image_url?: string | null;
+          p_cover_alt_text?: string | null;
+          p_opening_text: string;
+          p_revenue_policy_type?: string;
+          p_creator_reserved_percentage?: number;
+          p_opening_paragraph_weight?: number;
+          p_continuation_paragraph_weight?: number;
+          p_final_paragraph_weight?: number;
+        };
+        Returns: Json;
+      };
       submit_continuation: {
         Args: {
           p_story_id: string;

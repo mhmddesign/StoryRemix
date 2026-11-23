@@ -69,14 +69,14 @@ export function Navbar() {
             className="flex items-center gap-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
           >
             <Trophy className="w-4 h-4 text-amber-600" />
-            <span>Rankings</span>
+            <span>{t("navigation.rankings") || "Rankings"}</span>
           </Link>
           <Link
             href="/competitions"
             className="flex items-center gap-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
           >
             <Award className="w-4 h-4 text-amber-700" />
-            <span>Awards</span>
+            <span>{t("navigation.awards") || "Awards"}</span>
           </Link>
           <Link
             href="/completed"
@@ -248,7 +248,7 @@ export function Navbar() {
               className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--accent)] text-sm font-medium"
             >
               <Trophy className="w-4 h-4 text-amber-600" />
-              <span>Rankings</span>
+              <span>{t("navigation.rankings") || "Rankings"}</span>
             </Link>
             <Link
               href="/competitions"
@@ -256,7 +256,7 @@ export function Navbar() {
               className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--accent)] text-sm font-medium"
             >
               <Award className="w-4 h-4 text-amber-700" />
-              <span>Competitions</span>
+              <span>{t("navigation.competitions") || "Competitions"}</span>
             </Link>
             <Link
               href="/completed"

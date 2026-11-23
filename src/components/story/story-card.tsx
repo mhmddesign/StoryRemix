@@ -97,7 +97,7 @@ export function StoryCard({ story }: { story: StoryCardData }) {
           />
 
           {/* Floating Round/Status Pill */}
-          <div className="absolute top-5 right-5">
+          <div className="absolute top-5 end-5">
             {story.status === "completed" ? (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-400/30 text-emerald-300 text-[10px] font-semibold backdrop-blur-xs shadow">
                 <CheckCircle2 className="w-3 h-3" />
