@@ -1,16 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
-import createIntlMiddleware from "next-intl/middleware";
-import { type NextRequest } from "next/server";
-import { routing } from "@/i18n/routing";
+import { NextResponse, type NextRequest } from "next/server";
 import { Database } from "@/types/database";
 
-const intlMiddleware = createIntlMiddleware(routing);
-
 export async function proxy(request: NextRequest) {
-  // 1. Process internationalization routing & locale cookies
-  let response = intlMiddleware(request);
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
 
-  // 2. Refresh Supabase authentication session
+  // Refresh Supabase authentication session
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey =
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
@@ -27,6 +26,11 @@ export async function proxy(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({
+          request: {
+            headers: request.headers,
+          },
+        });
         cookiesToSet.forEach(({ name, value, options }) =>
           response.cookies.set(name, value, options)
         );

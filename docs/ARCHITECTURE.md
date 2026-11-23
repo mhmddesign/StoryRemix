@@ -56,7 +56,6 @@ StoryRemix/
 │   │   ├── layout/                   # Navbar, Footer
 │   │   ├── profile/                  # ProfileEditModal
 │   │   └── story/                    # StoryCover, StoryCard, ActiveRoundWidget, CoverProposalsModal
-│   ├── i18n/                         # next-intl request and routing configuration
 │   ├── lib/                          # Core business logic & utilities
 │   │   ├── ai/                       # Private server-side AI abstraction
 │   │   ├── supabase/                 # Server, Browser, and Admin Supabase clients

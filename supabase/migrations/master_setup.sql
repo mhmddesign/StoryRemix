@@ -1768,48 +1768,73 @@ ALTER TABLE public.prize_awards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.prize_allocation_records ENABLE ROW LEVEL SECURITY;
 
 -- Gamification RLS
+DROP POLICY IF EXISTS "Public level definitions viewable by all" ON public.level_definitions;
 CREATE POLICY "Public level definitions viewable by all" ON public.level_definitions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public achievement definitions viewable by all" ON public.achievement_definitions;
 CREATE POLICY "Public achievement definitions viewable by all" ON public.achievement_definitions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public challenge definitions viewable by all" ON public.challenge_definitions;
 CREATE POLICY "Public challenge definitions viewable by all" ON public.challenge_definitions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "User gamification profiles viewable by all" ON public.user_gamification;
 CREATE POLICY "User gamification profiles viewable by all" ON public.user_gamification FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users view own XP transactions" ON public.xp_transactions;
 CREATE POLICY "Users view own XP transactions" ON public.xp_transactions FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "User achievements viewable by all" ON public.user_achievements;
 CREATE POLICY "User achievements viewable by all" ON public.user_achievements FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users view own challenge progress" ON public.user_challenge_progress;
 CREATE POLICY "Users view own challenge progress" ON public.user_challenge_progress FOR SELECT USING (auth.uid() = user_id);
 
 -- Free Reactions RLS
+DROP POLICY IF EXISTS "Reactions viewable by all" ON public.story_reactions;
 CREATE POLICY "Reactions viewable by all" ON public.story_reactions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Authenticated users can toggle reactions" ON public.story_reactions;
 CREATE POLICY "Authenticated users can toggle reactions" ON public.story_reactions FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can remove own reactions" ON public.story_reactions;
 CREATE POLICY "Users can remove own reactions" ON public.story_reactions FOR DELETE USING (auth.uid() = user_id);
 
 -- Creator Economy RLS
+DROP POLICY IF EXISTS "Gift catalog viewable by all" ON public.gift_catalog;
 CREATE POLICY "Gift catalog viewable by all" ON public.gift_catalog FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Author revenue policies viewable by all" ON public.author_revenue_policies;
 CREATE POLICY "Author revenue policies viewable by all" ON public.author_revenue_policies FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Story owner can configure revenue policy before lock" ON public.author_revenue_policies;
 CREATE POLICY "Story owner can configure revenue policy before lock" ON public.author_revenue_policies FOR INSERT
     WITH CHECK (EXISTS (SELECT 1 FROM public.stories s WHERE s.id = author_revenue_policies.story_id AND s.owner_id = auth.uid()));
+DROP POLICY IF EXISTS "Contributors view own consents" ON public.contributor_policy_consents;
 CREATE POLICY "Contributors view own consents" ON public.contributor_policy_consents FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Contributors record policy consent" ON public.contributor_policy_consents;
 CREATE POLICY "Contributors record policy consent" ON public.contributor_policy_consents FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users view own gift transactions or as story recipient" ON public.gift_transactions;
 CREATE POLICY "Users view own gift transactions or as story recipient" ON public.gift_transactions FOR SELECT
     USING (auth.uid() = sender_id OR EXISTS (SELECT 1 FROM public.stories s WHERE s.id = gift_transactions.story_id AND s.owner_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Recipients view own allocations" ON public.gift_allocations;
 CREATE POLICY "Recipients view own allocations" ON public.gift_allocations FOR SELECT USING (auth.uid() = recipient_id);
 
 -- Financial ledgers restricted to administrators and moderators
+DROP POLICY IF EXISTS "Admins view financial transactions" ON public.financial_transactions;
 CREATE POLICY "Admins view financial transactions" ON public.financial_transactions FOR SELECT
     USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'moderator')));
 
+DROP POLICY IF EXISTS "Admins view financial ledger entries" ON public.financial_ledger_entries;
 CREATE POLICY "Admins view financial ledger entries" ON public.financial_ledger_entries FOR SELECT
     USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'moderator')));
 
+DROP POLICY IF EXISTS "Users view own payout account" ON public.payout_accounts;
 CREATE POLICY "Users view own payout account" ON public.payout_accounts FOR SELECT USING (auth.uid() = user_id);
 
 -- Leaderboards RLS
+DROP POLICY IF EXISTS "Leaderboard snapshots viewable by all" ON public.leaderboard_snapshots;
 CREATE POLICY "Leaderboard snapshots viewable by all" ON public.leaderboard_snapshots FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Leaderboard entries viewable by all" ON public.leaderboard_entries;
 CREATE POLICY "Leaderboard entries viewable by all" ON public.leaderboard_entries FOR SELECT USING (true);
 
 -- Competitions RLS
+DROP POLICY IF EXISTS "Prize competitions viewable by all" ON public.prize_competitions;
 CREATE POLICY "Prize competitions viewable by all" ON public.prize_competitions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Prize awards viewable by all" ON public.prize_awards;
 CREATE POLICY "Prize awards viewable by all" ON public.prize_awards FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Prize allocations viewable by all" ON public.prize_allocation_records;
 CREATE POLICY "Prize allocations viewable by all" ON public.prize_allocation_records FOR SELECT USING (true);
 
 -- ==============================================================================
@@ -1818,9 +1843,11 @@ CREATE POLICY "Prize allocations viewable by all" ON public.prize_allocation_rec
 DROP POLICY IF EXISTS "Anyone can record share events" ON public.share_events;
 DROP POLICY IF EXISTS "Anyone can record analytics events" ON public.analytics_events;
 
+DROP POLICY IF EXISTS "Authenticated or valid channel share events" ON public.share_events;
 CREATE POLICY "Authenticated or valid channel share events" ON public.share_events FOR INSERT
     WITH CHECK (LENGTH(channel) <= 60 AND story_id IS NOT NULL);
 
+DROP POLICY IF EXISTS "Validated analytics events insertion" ON public.analytics_events;
 CREATE POLICY "Validated analytics events insertion" ON public.analytics_events FOR INSERT
     WITH CHECK (
         event_name IN (
@@ -2028,12 +2055,15 @@ ALTER TABLE public.donation_allocations ENABLE ROW LEVEL SECURITY;
 
 -- 9. RLS Policies
 -- Proposals: Public can view; Story collaborators or authenticated writers can propose
+DROP POLICY IF EXISTS "Public can view cover proposals" ON public.story_cover_proposals;
 CREATE POLICY "Public can view cover proposals" ON public.story_cover_proposals
     FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can submit cover proposals" ON public.story_cover_proposals;
 CREATE POLICY "Authenticated users can submit cover proposals" ON public.story_cover_proposals
     FOR INSERT TO authenticated WITH CHECK (auth.uid() = proposer_id);
 
+DROP POLICY IF EXISTS "Creators or proposers can update cover proposals" ON public.story_cover_proposals;
 CREATE POLICY "Creators or proposers can update cover proposals" ON public.story_cover_proposals
     FOR UPDATE TO authenticated USING (
         auth.uid() = proposer_id OR 
@@ -2041,26 +2071,33 @@ CREATE POLICY "Creators or proposers can update cover proposals" ON public.story
     );
 
 -- Cover votes: Public can view; authenticated users can vote once
+DROP POLICY IF EXISTS "Public can view cover votes" ON public.story_cover_votes;
 CREATE POLICY "Public can view cover votes" ON public.story_cover_votes
     FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can vote on covers" ON public.story_cover_votes;
 CREATE POLICY "Authenticated users can vote on covers" ON public.story_cover_votes
     FOR INSERT TO authenticated WITH CHECK (auth.uid() = voter_id);
 
+DROP POLICY IF EXISTS "Users can remove their cover vote" ON public.story_cover_votes;
 CREATE POLICY "Users can remove their cover vote" ON public.story_cover_votes
     FOR DELETE TO authenticated USING (auth.uid() = voter_id);
 
 -- Cover history: Public read only
+DROP POLICY IF EXISTS "Public can view cover history" ON public.story_cover_history;
 CREATE POLICY "Public can view cover history" ON public.story_cover_history
     FOR SELECT USING (true);
 
 -- Donations: Public can view non-sensitive donation stats; Donors can view own; Admins can view all
+DROP POLICY IF EXISTS "Public can view completed donations" ON public.donations;
 CREATE POLICY "Public can view completed donations" ON public.donations
     FOR SELECT USING (status = 'completed');
 
+DROP POLICY IF EXISTS "Authenticated users can create donations" ON public.donations;
 CREATE POLICY "Authenticated users can create donations" ON public.donations
     FOR INSERT TO authenticated WITH CHECK (donor_id = auth.uid());
 
+DROP POLICY IF EXISTS "Public can view donation allocations" ON public.donation_allocations;
 CREATE POLICY "Public can view donation allocations" ON public.donation_allocations
     FOR SELECT USING (true);
 
@@ -2079,20 +2116,24 @@ ON CONFLICT (id) DO UPDATE SET
     allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
 
 -- Storage RLS Policies
+DROP POLICY IF EXISTS "Public can view story covers" ON storage.objects;
 CREATE POLICY "Public can view story covers" ON storage.objects
     FOR SELECT USING (bucket_id = 'story-covers');
 
+DROP POLICY IF EXISTS "Authenticated users can upload story covers" ON storage.objects;
 CREATE POLICY "Authenticated users can upload story covers" ON storage.objects
     FOR INSERT TO authenticated WITH CHECK (
         bucket_id = 'story-covers' AND
         (LOWER(SUBSTRING(name FROM '\.([^\.]+)$')) IN ('jpg', 'jpeg', 'png', 'webp', 'avif'))
     );
 
+DROP POLICY IF EXISTS "Owners can update or delete own cover uploads" ON storage.objects;
 CREATE POLICY "Owners can update or delete own cover uploads" ON storage.objects
     FOR UPDATE TO authenticated USING (
         bucket_id = 'story-covers' AND auth.uid()::text = (storage.foldername(name))[1]
     );
 
+DROP POLICY IF EXISTS "Owners can delete own cover uploads" ON storage.objects;
 CREATE POLICY "Owners can delete own cover uploads" ON storage.objects
     FOR DELETE TO authenticated USING (
         bucket_id = 'story-covers' AND auth.uid()::text = (storage.foldername(name))[1]

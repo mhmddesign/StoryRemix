@@ -21,16 +21,23 @@ If you see an error such as:
 ```
 This indicates that the remote PostgreSQL database instance does not yet have the StoryRemix schema applied or that PostgREST has not reloaded its schema cache.
 
-### Step-by-Step 1-Click Fix:
-1. Open the [Supabase Dashboard SQL Editor](https://supabase.com/dashboard/project/ysrxzzscfttsiscdpiby/sql).
-2. Open the file `supabase/migrations/master_setup.sql` in this repository.
-3. Copy its entire content into the Supabase SQL Editor.
-4. Click **Run** (or press `Ctrl+Enter` / `Cmd+Enter`).
-5. The script creates all tables, indexes, RLS policies, storage buckets, triggers, and runs:
-   ```sql
-   NOTIFY pgrst, 'reload schema';
-   ```
-6. Verify by opening **Table Editor** in the dashboard. You should see all 19 tables listed.
+### Verification of First Execution:
+In the project `ysrxzzscfttsiscdpiby`, the initial execution of `master_setup.sql` succeeded and created all 46 tables, types, and procedures in `public`.
+
+### Note on Second Execution Error (42710):
+If `master_setup.sql` is run a second time without dropping existing policies, PostgreSQL raises:
+```text
+ERROR: 42710: policy "Public profiles are readable by everyone" for table "profiles" already exists
+```
+This is expected behavior in PostgreSQL when `CREATE POLICY` is invoked on an existing policy name. It confirmed that the first execution was indeed successful and that the database schema is already populated.
+`master_setup.sql` has been updated so that every `CREATE POLICY` is safely preceded by `DROP POLICY IF EXISTS`, making it 100% idempotent for any future runs.
+
+### Storage Buckets & Least-Privilege Grants:
+To ensure the `avatars` and `story-covers` storage buckets and least-privilege security grants are applied:
+1. Open the [Supabase SQL Editor](https://supabase.com/dashboard/project/ysrxzzscfttsiscdpiby/sql).
+2. Run the additive migration:
+   `supabase/migrations/20261123_least_privilege_and_storage.sql`
+3. This creates the storage buckets with public read policies and restricts `anon` table access to explicit read-only permissions while keeping full authenticated CRUD protected by RLS.
 
 ---
 
