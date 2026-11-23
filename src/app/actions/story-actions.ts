@@ -20,6 +20,8 @@ const createStorySchema = z.object({
   defaultVoteThreshold: z.number().int().min(1).max(100),
   defaultRoundDuration: z.number().int().min(60).max(604800), // 1 min to 7 days
   tags: z.array(z.string()).default([]),
+  coverImageUrl: z.string().url("Cover image must be a valid URL").optional().or(z.literal("")),
+  coverAltText: z.string().max(200).optional().or(z.literal("")),
   revenuePolicyType: z.enum([
     "equal_collaborators",
     "contribution_weighted",
@@ -56,6 +58,8 @@ export async function createStoryAction(formData: FormData) {
     defaultVoteThreshold: Number(formData.get("defaultVoteThreshold") || 3),
     defaultRoundDuration: Number(formData.get("defaultRoundDuration") || 86400),
     tags: parsedTags,
+    coverImageUrl: formData.get("coverImageUrl")?.toString().trim() || undefined,
+    coverAltText: formData.get("coverAltText")?.toString().trim() || undefined,
     revenuePolicyType: (formData.get("revenuePolicyType") as any) || "equal_collaborators",
     creatorReservedPercentage: Number(formData.get("creatorReservedPercentage") || 30),
     openingParagraphWeight: Number(formData.get("openingParagraphWeight") || 2),
@@ -99,6 +103,8 @@ export async function createStoryAction(formData: FormData) {
       current_paragraph_count: 1,
       default_vote_threshold: values.defaultVoteThreshold,
       default_round_duration: values.defaultRoundDuration,
+      cover_image_url: values.coverImageUrl || null,
+      cover_alt_text: values.coverAltText || null,
       status: "active",
     })
     .select()

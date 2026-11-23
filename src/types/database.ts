@@ -80,6 +80,8 @@ export interface Database {
           language: string;
           visibility: StoryVisibility;
           cover_image_url: string | null;
+          cover_alt_text?: string | null;
+          cover_creator_id?: string | null;
           max_paragraphs: number;
           current_paragraph_count: number;
           default_vote_threshold: number;
@@ -100,6 +102,8 @@ export interface Database {
           language?: string;
           visibility?: StoryVisibility;
           cover_image_url?: string | null;
+          cover_alt_text?: string | null;
+          cover_creator_id?: string | null;
           max_paragraphs: number;
           current_paragraph_count?: number;
           default_vote_threshold?: number;
@@ -120,6 +124,8 @@ export interface Database {
           language?: string;
           visibility?: StoryVisibility;
           cover_image_url?: string | null;
+          cover_alt_text?: string | null;
+          cover_creator_id?: string | null;
           max_paragraphs?: number;
           current_paragraph_count?: number;
           default_vote_threshold?: number;
@@ -1020,6 +1026,171 @@ export interface Database {
           recipient_id?: string;
           allocated_cents?: number;
           percentage?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      story_cover_proposals: {
+        Row: {
+          id: string;
+          story_id: string;
+          proposer_id: string;
+          image_url: string;
+          alt_text: string | null;
+          status: "pending" | "approved" | "rejected" | "voting";
+          votes_count: number;
+          rights_confirmed: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          story_id: string;
+          proposer_id: string;
+          image_url: string;
+          alt_text?: string | null;
+          status?: "pending" | "approved" | "rejected" | "voting";
+          votes_count?: number;
+          rights_confirmed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          story_id?: string;
+          proposer_id?: string;
+          image_url?: string;
+          alt_text?: string | null;
+          status?: "pending" | "approved" | "rejected" | "voting";
+          votes_count?: number;
+          rights_confirmed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      story_cover_votes: {
+        Row: {
+          id: string;
+          story_id: string;
+          proposal_id: string;
+          voter_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          story_id: string;
+          proposal_id: string;
+          voter_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          story_id?: string;
+          proposal_id?: string;
+          voter_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      story_cover_history: {
+        Row: {
+          id: string;
+          story_id: string;
+          image_url: string;
+          alt_text: string | null;
+          chosen_by: string | null;
+          proposal_id: string | null;
+          replaced_at: string;
+        };
+        Insert: {
+          id?: string;
+          story_id: string;
+          image_url: string;
+          alt_text?: string | null;
+          chosen_by?: string | null;
+          proposal_id?: string | null;
+          replaced_at?: string;
+        };
+        Update: {
+          id?: string;
+          story_id?: string;
+          image_url?: string;
+          alt_text?: string | null;
+          chosen_by?: string | null;
+          proposal_id?: string | null;
+          replaced_at?: string;
+        };
+        Relationships: [];
+      };
+      donations: {
+        Row: {
+          id: string;
+          story_id: string | null;
+          donor_id: string | null;
+          gross_amount_cents: number;
+          processor_fee_cents: number;
+          net_amount_cents: number;
+          creator_pool_cents: number;
+          platform_fee_cents: number;
+          currency: string;
+          status: "pending" | "completed" | "failed" | "refunded";
+          is_sandbox: boolean;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          story_id?: string | null;
+          donor_id?: string | null;
+          gross_amount_cents: number;
+          processor_fee_cents?: number;
+          net_amount_cents: number;
+          creator_pool_cents: number;
+          platform_fee_cents: number;
+          currency?: string;
+          status?: "pending" | "completed" | "failed" | "refunded";
+          is_sandbox?: boolean;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          story_id?: string | null;
+          donor_id?: string | null;
+          gross_amount_cents?: number;
+          processor_fee_cents?: number;
+          net_amount_cents?: number;
+          creator_pool_cents?: number;
+          platform_fee_cents?: number;
+          currency?: string;
+          status?: "pending" | "completed" | "failed" | "refunded";
+          is_sandbox?: boolean;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      donation_allocations: {
+        Row: {
+          id: string;
+          donation_id: string;
+          author_id: string;
+          allocated_cents: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          donation_id: string;
+          author_id: string;
+          allocated_cents: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          donation_id?: string;
+          author_id?: string;
+          allocated_cents?: number;
           created_at?: string;
         };
         Relationships: [];

@@ -1,142 +1,55 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import enMessages from "../../../messages/en.json";
+import frMessages from "../../../messages/fr.json";
+import arMessages from "../../../messages/ar.json";
 
 export type Language = "en" | "fr" | "ar";
 
-interface Translations {
-  [key: string]: {
-    en: string;
-    fr: string;
-    ar: string;
-  };
-}
+const DICTIONARIES: Record<Language, any> = {
+  en: enMessages,
+  fr: frMessages,
+  ar: arMessages,
+};
 
-export const UI_STRINGS: Translations = {
-  appName: {
-    en: "StoryRemix",
-    fr: "StoryRemix",
-    ar: "ستوري ريمكس",
-  },
-  tagline: {
-    en: "One story. Many minds. Endless possibilities.",
-    fr: "Une histoire. Plusieurs esprits. Des possibilités infinies.",
-    ar: "قصة واحدة. عقول متعددة. إمكانيات لا تنتهي.",
-  },
-  explore: {
-    en: "Explore",
-    fr: "Explorer",
-    ar: "استكشف",
-  },
-  trending: {
-    en: "Trending",
-    fr: "Tendances",
-    ar: "الرائج",
-  },
-  activeRounds: {
-    en: "Active Rounds",
-    fr: "Rounds Actifs",
-    ar: "جولات نشطة",
-  },
-  completed: {
-    en: "Completed Stories",
-    fr: "Histoires Terminées",
-    ar: "قصص مكتملة",
-  },
-  startStory: {
-    en: "Start a Story",
-    fr: "Créer une histoire",
-    ar: "ابدأ قصة",
-  },
-  signIn: {
-    en: "Sign In",
-    fr: "Connexion",
-    ar: "تسجيل الدخول",
-  },
-  signUp: {
-    en: "Sign Up",
-    fr: "S'inscrire",
-    ar: "إنشاء حساب",
-  },
-  signOut: {
-    en: "Sign Out",
-    fr: "Déconnexion",
-    ar: "تسجيل الخروج",
-  },
-  profile: {
-    en: "Profile",
-    fr: "Profil",
-    ar: "الملف الشخصي",
-  },
-  myStories: {
-    en: "My Stories",
-    fr: "Mes Histoires",
-    ar: "قصصي",
-  },
-  myContributions: {
-    en: "My Contributions",
-    fr: "Mes Contributions",
-    ar: "مساهماتي",
-  },
-  saved: {
-    en: "Saved Stories",
-    fr: "Histoires Enregistrées",
-    ar: "المحفوظات",
-  },
-  adminDashboard: {
-    en: "Moderation & Admin",
-    fr: "Modération & Admin",
-    ar: "لوحة الإشراف",
-  },
-  searchPlaceholder: {
-    en: "Search stories by title, genre, or premise...",
-    fr: "Rechercher par titre, genre ou prémisse...",
-    ar: "ابحث عن القصص بالعنوان، النوع، أو الفكرة...",
-  },
-  writeContinuation: {
-    en: "Submit Continuation",
-    fr: "Soumettre une suite",
-    ar: "أضف تكملة",
-  },
-  vote: {
-    en: "Vote",
-    fr: "Voter",
-    ar: "تصويت",
-  },
-  voted: {
-    en: "Voted",
-    fr: "Voté",
-    ar: "تم التصويت",
-  },
-  paragraphsCount: {
-    en: "Paragraphs",
-    fr: "Paragraphes",
-    ar: "فقرات",
-  },
-  contributorsCount: {
-    en: "Contributors",
-    fr: "Contributeurs",
-    ar: "مساهمين",
-  },
-  remixThisStory: {
-    en: "Remix This Story",
-    fr: "Remixer cette histoire",
-    ar: "إعادة صياغة القصة (ريمكس)",
-  },
+// Backward-compatibility mapping for existing flat keys
+const LEGACY_MAP: Record<string, string> = {
+  appName: "common.appName",
+  tagline: "common.tagline",
+  explore: "navigation.explore",
+  trending: "discovery.feedTrending",
+  activeRounds: "navigation.activeRounds",
+  completed: "navigation.completedStories",
+  startStory: "navigation.startStory",
+  signIn: "navigation.signIn",
+  signUp: "navigation.signUp",
+  signOut: "navigation.signOut",
+  profile: "navigation.profile",
+  myStories: "navigation.myStories",
+  saved: "navigation.savedStories",
+  adminDashboard: "navigation.adminDashboard",
+  searchPlaceholder: "common.search",
+  writeContinuation: "editor.submitContinuation",
+  vote: "voting.voteForCandidate",
+  voted: "voting.voted",
+  paragraphsCount: "stories.paragraphs",
+  contributorsCount: "stories.contributors",
+  remixThisStory: "stories.remixStory",
 };
 
 interface LanguageContextType {
   language: Language;
   direction: "ltr" | "rtl";
   setLanguage: (lang: Language) => void;
-  t: (key: keyof typeof UI_STRINGS) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType>({
   language: "en",
   direction: "ltr",
   setLanguage: () => {},
-  t: (key) => UI_STRINGS[key]?.en || String(key),
+  t: (key) => key,
 });
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
@@ -146,13 +59,18 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setLanguageState(lang);
     if (typeof window !== "undefined") {
       localStorage.setItem("storyremix_lang", lang);
+      document.cookie = `NEXT_LOCALE=${lang}; path=/; max-age=31536000; SameSite=Lax`;
       document.documentElement.lang = lang;
       document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
     }
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem("storyremix_lang") as Language;
+    // 1. Check cookie or localStorage
+    const match = document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]*)/);
+    const cookieLocale = match ? decodeURIComponent(match[1]) : null;
+    const saved = (cookieLocale || localStorage.getItem("storyremix_lang")) as Language;
+
     if (saved && (saved === "en" || saved === "fr" || saved === "ar")) {
       setLanguageState(saved);
       document.documentElement.lang = saved;
@@ -160,8 +78,41 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const t = (key: keyof typeof UI_STRINGS) => {
-    return UI_STRINGS[key]?.[language] || UI_STRINGS[key]?.en || String(key);
+  const t = (key: string, params?: Record<string, string | number>): string => {
+    const resolvedPath = LEGACY_MAP[key] || key;
+    const parts = resolvedPath.split(".");
+
+    let current: any = DICTIONARIES[language];
+    for (const part of parts) {
+      if (current && typeof current === "object" && part in current) {
+        current = current[part];
+      } else {
+        current = null;
+        break;
+      }
+    }
+
+    // Fallback to English if missing in target locale
+    if (typeof current !== "string") {
+      let fallback: any = DICTIONARIES.en;
+      for (const part of parts) {
+        if (fallback && typeof fallback === "object" && part in fallback) {
+          fallback = fallback[part];
+        } else {
+          fallback = null;
+          break;
+        }
+      }
+      current = typeof fallback === "string" ? fallback : key;
+    }
+
+    if (params) {
+      for (const [pKey, pVal] of Object.entries(params)) {
+        current = current.replace(new RegExp(`\\{${pKey}\\}`, "g"), String(pVal));
+      }
+    }
+
+    return current;
   };
 
   return (

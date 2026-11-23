@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تأكيد حسابك في ستوري ريمكس</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #F8F6F0;
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      color: #1C1917;
+      line-height: 1.8;
+      direction: rtl;
+      text-align: right;
+    }
+    .wrapper {
+      max-width: 560px;
+      margin: 40px auto;
+      background-color: #FFFFFF;
+      border: 1px solid #E7E5E4;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    .header {
+      background: linear-gradient(135deg, #78350F, #92400E);
+      padding: 32px 32px 28px;
+      text-align: center;
+      color: #FFFFFF;
+    }
+    .logo-badge {
+      display: inline-block;
+      font-size: 24px;
+      font-weight: bold;
+      color: #FDE68A;
+      margin-bottom: 6px;
+    }
+    .header-tagline {
+      font-size: 13px;
+      color: #FCD34D;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .body {
+      padding: 36px 32px;
+    }
+    h1 {
+      font-size: 22px;
+      color: #1C1917;
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+    p {
+      font-size: 15px;
+      color: #44403C;
+      margin-bottom: 20px;
+    }
+    .btn-container {
+      text-align: center;
+      margin: 32px 0;
+    }
+    .btn {
+      display: inline-block;
+      background-color: #92400E;
+      color: #FFFFFF !important;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 16px;
+      padding: 14px 36px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(146, 64, 14, 0.3);
+    }
+    .alt-link {
+      background-color: #F5F5F4;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      color: #78716C;
+      word-break: break-all;
+      margin-top: 24px;
+      direction: ltr;
+      text-align: left;
+    }
+    .footer {
+      border-top: 1px solid #F5F5F4;
+      padding: 24px 32px;
+      text-align: center;
+      font-size: 12px;
+      color: #A8A29E;
+      background-color: #FAFAF9;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div class="logo-badge">ستوري ريمكس | StoryRemix</div>
+      <div class="header-tagline">منصة السرد القصصي التشاركي</div>
+    </div>
+    <div class="body">
+      <h1>مرحباً بك في دائرة الكُتّاب</h1>
+      <p>شكراً لانضمامك إلى ستوري ريمكس! تفصلك خطوة واحدة عن بدء كتابة قصصك المبتكرة، والمشاركة في إكمال الروايات الجماعية والتصويت على الفقرات الفائزة.</p>
+      <p>يرجى تأكيد بريدك الإلكتروني لتفعيل حسابك:</p>
+      <div class="btn-container">
+        <a href="{{ .ConfirmationURL }}" class="btn">تأكيد البريد الإلكتروني</a>
+      </div>
+      <p class="alt-link">إذا لم يعمل الزر أعلاه، انسخ هذا الرابط والصقه في متصفحك:<br>{{ .ConfirmationURL }}</p>
+    </div>
+    <div class="footer">
+      &copy; 2026 ستوري ريمكس (StoryRemix). جميع الحقوق محفوظة.<br>
+      تلقيت هذه الرسالة لأنه تم إنشاء حساب في ستوري ريمكس باستخدام هذا العنوان.
+    </div>
+  </div>
+</body>
+</html>

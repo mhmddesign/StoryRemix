@@ -130,16 +130,22 @@ export function Navbar() {
                     onClick={() => setUserDropdownOpen(false)}
                   >
                     <div className="px-3 py-2 border-b border-[var(--border)] mb-1">
-                      <p className="text-xs font-semibold text-[var(--foreground)]">
-                        {profile?.display_name}
+                      <p className="text-xs font-semibold text-[var(--foreground)] truncate">
+                        {profile?.display_name || user.email?.split("@")[0] || "Writer"}
                       </p>
-                      <p className="text-[11px] text-[var(--muted-foreground)] truncate">
-                        @{profile?.username}
-                      </p>
+                      {profile?.username ? (
+                        <p className="text-[11px] text-[var(--muted-foreground)] font-mono truncate">
+                          @{profile.username}
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-amber-700 font-medium">
+                          Setting up profile...
+                        </p>
+                      )}
                     </div>
 
                     <Link
-                      href={`/profile/${profile?.username || user.id}`}
+                      href={`/profile/${profile?.username || "me"}`}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs hover:bg-[var(--accent)] text-[var(--foreground)]"
                     >
                       <User className="w-3.5 h-3.5 text-[var(--muted-foreground)]" />
@@ -279,7 +285,7 @@ export function Navbar() {
                   <span>{t("startStory")}</span>
                 </Link>
                 <Link
-                  href={`/profile/${profile?.username || user.id}`}
+                  href={`/profile/${profile?.username || "me"}`}
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--accent)] text-sm"
                 >

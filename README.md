@@ -45,10 +45,31 @@ StoryRemix is a collaborative storytelling social platform where users co-create
   - Reporting queue for stories, continuations, comments, and profiles.
   - Admin dashboard with report management and audit logs.
 - **Production Architecture**:
-  - Next.js 16.4+ (App Router, Turbopack, `proxy.ts` convention), React 19.3+, TypeScript strict mode, Tailwind CSS 4.3+.
-  - Supabase PostgreSQL with Row Level Security (RLS) on every table and transactional SQL procedures.
+  - Next.js 16.4+ (App Router, Turbopack, `src/proxy.ts` convention), React 19.3+, TypeScript strict mode, Tailwind CSS.
+  - Internationalization via `next-intl` with English, French, and Arabic RTL (100% dictionary key parity tested).
+  - Story book covers (standard 2:3 aspect ratio, generative genre-themed typography fallbacks, community proposals, and creator voting/approval).
+  - Voluntary creator donations with exact 90% creator pool and 10% platform fee in integer cents.
+  - Google AdSense preparation (disabled by default, zero CLS, compliant ads.txt).
+  - Private server-side AI provider abstraction (`DisabledAIProvider` default with zero client exposure).
+  - Supabase PostgreSQL with Row Level Security (RLS) on all 19 tables and transactional SQL procedures.
   - Automated background round expiration cron route (`/api/cron/process-rounds`) with fail-closed authentication.
   - System health check endpoint (`/api/health`).
+
+---
+
+## Documentation Suite
+
+Detailed architectural, deployment, and operational guides are available in [`docs/`](file:///c:/Users/MHMD/Documents/StoryRemix/docs/):
+
+- [Architecture Overview](file:///c:/Users/MHMD/Documents/StoryRemix/docs/ARCHITECTURE.md)
+- [Supabase Setup & Master Migration](file:///c:/Users/MHMD/Documents/StoryRemix/docs/SUPABASE_SETUP.md)
+- [Email & Custom SMTP Setup](file:///c:/Users/MHMD/Documents/StoryRemix/docs/EMAIL_SETUP.md)
+- [Internationalization & RTL](file:///c:/Users/MHMD/Documents/StoryRemix/docs/INTERNATIONALIZATION.md)
+- [Story Covers & Community Proposals](file:///c:/Users/MHMD/Documents/StoryRemix/docs/STORY_COVERS.md)
+- [Creator Economy & 90/10 Donations](file:///c:/Users/MHMD/Documents/StoryRemix/docs/DONATIONS_AND_PAYMENTS.md)
+- [Google AdSense Integration](file:///c:/Users/MHMD/Documents/StoryRemix/docs/ADSENSE_SETUP.md)
+- [Production Deployment](file:///c:/Users/MHMD/Documents/StoryRemix/docs/DEPLOYMENT.md)
+- [MVP Diagnostic Audit](file:///c:/Users/MHMD/Documents/StoryRemix/docs/MVP_AUDIT.md)
 
 ---
 
@@ -95,9 +116,9 @@ CRON_SECRET=your-random-cron-secret
 ```
 
 ### 4. Database Setup
-Apply both migrations in your Supabase SQL Editor in sequence:
-1. `supabase/migrations/20261122_initial_schema.sql` (Core platform tables, RLS, functions)
-2. `supabase/migrations/20261122_gamification_economy_leaderboards.sql` (Gamification, economy, revenue policies, leaderboards, competitions)
+Apply the consolidated master setup migration in your [Supabase SQL Editor](https://supabase.com/dashboard/project/ysrxzzscfttsiscdpiby/sql):
+- `supabase/migrations/master_setup.sql` (1-click script creating all 19 tables, storage buckets `avatars` and `story-covers`, idempotent triggers, RLS policies, and reloading the schema cache).
+See [Supabase Setup Guide](file:///c:/Users/MHMD/Documents/StoryRemix/docs/SUPABASE_SETUP.md) for full instructions.
 
 ### 5. Typecheck & Tests
 ```bash

@@ -60,9 +60,22 @@ body {
   line-height: 1.85;
 }
 
-/* RTL layout helpers */
+/* RTL layout & typography helpers */
 [dir="rtl"] {
   text-align: right;
+  direction: rtl;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Amiri", "Noto Naskh Arabic", Tahoma, sans-serif;
+}
+
+[dir="rtl"] .story-font {
+  font-family: "Amiri", "Traditional Arabic", Georgia, serif;
+  line-height: 2;
+  letter-spacing: 0;
+}
+
+/* Mirror directional navigation arrows in RTL */
+[dir="rtl"] .rtl-mirror {
+  transform: scaleX(-1);
 }
 
 /* Custom scrollbar for literary feel */

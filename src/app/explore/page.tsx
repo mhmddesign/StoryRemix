@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { StoryCard, StoryCardData } from "@/components/story/story-card";
+import { AdSlot } from "@/components/ads/ad-slot";
 import { Compass, Search, Filter } from "lucide-react";
 
 interface ExplorePageProps {
@@ -186,6 +187,9 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
           ))}
         </div>
       )}
+
+      {/* Non-intrusive AdSlot for Discovery Feed (Disabled by default) */}
+      <AdSlot slotId="explore_feed_bottom" format="horizontal" />
     </div>
   );
 }

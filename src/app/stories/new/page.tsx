@@ -7,6 +7,7 @@ import { createStoryAction } from "@/app/actions/story-actions";
 import { analyzeStoryText } from "@/lib/sentence-tokenizer";
 import { RevenuePolicySelector } from "@/components/story/revenue-policy-selector";
 import { RevenuePolicyType } from "@/types/database";
+import { StoryCover } from "@/components/story/story-cover";
 import {
   Feather,
   Sparkles,
@@ -18,6 +19,7 @@ import {
   HelpCircle,
   Loader2,
   DollarSign,
+  Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -60,6 +62,8 @@ export default function NewStoryPage() {
   const [roundDuration, setRoundDuration] = useState(86400);
   const [tags, setTags] = useState("");
   const [openingText, setOpeningText] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [coverAltText, setCoverAltText] = useState("");
 
   // Co-author revenue sharing policy state
   const [policyType, setPolicyType] = useState<RevenuePolicyType>("equal_collaborators");
@@ -103,6 +107,8 @@ export default function NewStoryPage() {
     formData.append("defaultVoteThreshold", voteThreshold.toString());
     formData.append("defaultRoundDuration", roundDuration.toString());
     formData.append("tags", tags);
+    formData.append("coverImageUrl", coverImageUrl);
+    formData.append("coverAltText", coverAltText);
     formData.append("openingText", openingText);
     formData.append("revenuePolicyType", policyType);
     formData.append("creatorReservedPercentage", creatorReserved.toString());
@@ -224,6 +230,76 @@ export default function NewStoryPage() {
               placeholder="steampunk, time-travel, mystery, noir"
               className="w-full px-3.5 py-2 rounded-xl border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] text-xs focus:outline-none"
             />
+          </div>
+        </div>
+
+        {/* Cover Artwork (2:3 Aspect Ratio) */}
+        <div className="p-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] space-y-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-[var(--foreground)] uppercase tracking-wider flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-amber-700" /> Story Book Cover (Optional)
+            </h2>
+            <span className="text-[11px] text-[var(--muted-foreground)]">Standard 2:3 Aspect Ratio</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+            <div className="md:col-span-2 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-[var(--foreground)]">
+                  Cover Image URL
+                </label>
+                <input
+                  type="url"
+                  value={coverImageUrl}
+                  onChange={(e) => setCoverImageUrl(e.target.value)}
+                  placeholder="https://images.unsplash.com/... or Supabase storage link"
+                  className="w-full px-3.5 py-2 rounded-xl border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] text-xs focus:outline-none focus:ring-2 focus:ring-amber-700/30"
+                />
+                <p className="text-[11px] text-[var(--muted-foreground)]">
+                  Leave empty to automatically use an editorial typography cover styled for{" "}
+                  <strong>{genre}</strong>.
+                </p>
+              </div>
+
+              {coverImageUrl && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[var(--foreground)]">
+                    Accessibility Alt Text
+                  </label>
+                  <input
+                    type="text"
+                    value={coverAltText}
+                    onChange={(e) => setCoverAltText(e.target.value)}
+                    placeholder="e.g. A silhouette of a clock tower under a starlit violet sky"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] text-xs focus:outline-none"
+                  />
+                </div>
+              )}
+
+              <div className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300">
+                <p className="font-semibold mb-0.5">Community Cover Proposals</p>
+                <p className="text-[11px] text-[var(--muted-foreground)]">
+                  Once your story is active, co-authors and readers can also design and submit cover
+                  proposals. The community can vote, and you maintain final approval authority.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <p className="text-[11px] font-semibold text-[var(--muted-foreground)] mb-2 uppercase tracking-wider">
+                Live Preview
+              </p>
+              <div className="w-36 sm:w-44 shadow-lg rounded-xl overflow-hidden border border-[var(--border)]">
+                <StoryCover
+                  coverUrl={coverImageUrl}
+                  altText={coverAltText}
+                  title={title.trim() || "Your Story Title"}
+                  genre={genre}
+                  authorName={user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Author"}
+                  size="sm"
+                />
+              </div>
+            </div>
           </div>
         </div>
 

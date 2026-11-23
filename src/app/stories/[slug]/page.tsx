@@ -5,7 +5,11 @@ import { ActiveRoundWidget, StoryRoundData } from "@/components/story/active-rou
 import { StoryInteractionBar } from "@/components/story/story-interaction-bar";
 import { StoryReactionBar } from "@/components/economy/story-reaction-bar";
 import { GiftModal } from "@/components/economy/gift-modal";
+import { DonationModal } from "@/components/economy/donation-modal";
 import { RemixModalTrigger } from "@/components/story/remix-modal-trigger";
+import { StoryCover } from "@/components/story/story-cover";
+import { CoverProposalsModal } from "@/components/story/cover-proposals-modal";
+import { AdSlot } from "@/components/ads/ad-slot";
 import { BookOpen, Users, Flame, CheckCircle2, DollarSign, Scale } from "lucide-react";
 import type { Metadata } from "next";
 
@@ -221,81 +225,119 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
       : "Equal Collaborators";
 
   const uniqueAuthors = new Set(segments.map((s) => s.author.id));
+  const isCreator = user ? user.id === story.owner_id : false;
 
   return (
     <div className="max-w-4xl mx-auto py-6 space-y-10">
-      {/* Story Metadata & Title Header */}
-      <div className="space-y-4 border-b border-[var(--border)] pb-8">
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="px-3 py-1 rounded-full bg-amber-700/10 text-amber-800 dark:text-amber-300 font-bold uppercase tracking-wider">
-            {story.genre}
-          </span>
-          <span className="px-2.5 py-1 rounded-full border border-[var(--border)] text-[var(--muted-foreground)] uppercase">
-            {story.language}
-          </span>
-          {story.status === "completed" ? (
-            <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Complete Story
-            </span>
-          ) : (
-            <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 font-semibold flex items-center gap-1.5">
-              <Flame className="w-3.5 h-3.5" /> Round in Progress
-            </span>
-          )}
-
-          {/* Revenue Policy Badge */}
-          <span className="px-3 py-1 rounded-full border border-amber-700/20 bg-amber-700/5 text-amber-800 dark:text-amber-300 text-[11px] font-medium flex items-center gap-1">
-            <Scale className="w-3 h-3 text-amber-600" />
-            <span>Revenue Split: {policyLabel}</span>
-          </span>
-        </div>
-
-        <h1 className="font-serif text-3xl sm:text-5xl font-bold text-[var(--foreground)] tracking-tight leading-tight">
-          {story.title}
-        </h1>
-
-        {story.description && (
-          <p className="text-sm sm:text-base text-[var(--muted-foreground)] font-serif italic max-w-2xl">
-            &ldquo;{story.description}&rdquo;
-          </p>
-        )}
-
-        {/* Stats & Progress Strip */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-2 text-xs text-[var(--muted-foreground)]">
-          <div className="flex items-center gap-4 flex-wrap">
-            <span className="flex items-center gap-1.5">
-              <BookOpen className="w-4 h-4 text-amber-700" />
-              <strong className="text-[var(--foreground)]">{segments.length}</strong> of{" "}
-              {story.max_paragraphs} Paragraphs
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-amber-700" />
-              <strong className="text-[var(--foreground)]">{uniqueAuthors.size}</strong>{" "}
-              Contributors
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <GiftModal
+      {/* Story Metadata & Cover Hero Header */}
+      <div className="border-b border-[var(--border)] pb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 sm:gap-8 items-start">
+          {/* 2:3 Book Cover Column */}
+          <div className="sm:col-span-4 md:col-span-3 flex flex-col items-center sm:items-start space-y-3">
+            <div className="w-44 sm:w-full shadow-lg rounded-xl overflow-hidden border border-[var(--border)] group">
+              <StoryCover
+                coverUrl={story.cover_image_url}
+                altText={story.cover_alt_text}
+                title={story.title}
+                genre={story.genre}
+                authorName={story.owner?.display_name || story.owner?.username || "Original Author"}
+                size="lg"
+              />
+            </div>
+            <CoverProposalsModal
               storyId={story.id}
-              storyTitle={story.title}
-              uniqueAuthorsCount={uniqueAuthors.size}
-            />
-            <StoryInteractionBar
-              storyId={story.id}
-              initialLikes={likesCount || 0}
-              initialIsLiked={isLiked}
-              initialIsBookmarked={isBookmarked}
-              storyTitle={story.title}
+              isCreator={isCreator}
+              currentCoverUrl={story.cover_image_url}
             />
           </div>
-        </div>
 
-        {/* Free Social Reactions Bar */}
-        <StoryReactionBar
-          storyId={story.id}
-          initialReactions={initialReactions}
-        />
+          {/* Details & Action Column */}
+          <div className="sm:col-span-8 md:col-span-9 space-y-4">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="px-3 py-1 rounded-full bg-amber-700/10 text-amber-800 dark:text-amber-300 font-bold uppercase tracking-wider">
+                {story.genre}
+              </span>
+              <span className="px-2.5 py-1 rounded-full border border-[var(--border)] text-[var(--muted-foreground)] uppercase">
+                {story.language}
+              </span>
+              {story.status === "completed" ? (
+                <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Complete Story
+                </span>
+              ) : (
+                <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 font-semibold flex items-center gap-1.5">
+                  <Flame className="w-3.5 h-3.5" /> Round in Progress
+                </span>
+              )}
+
+              {/* Revenue Policy Badge */}
+              <span className="px-3 py-1 rounded-full border border-amber-700/20 bg-amber-700/5 text-amber-800 dark:text-amber-300 text-[11px] font-medium flex items-center gap-1">
+                <Scale className="w-3 h-3 text-amber-600" />
+                <span>Revenue Split: {policyLabel}</span>
+              </span>
+            </div>
+
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-[var(--foreground)] tracking-tight leading-tight">
+              {story.title}
+            </h1>
+
+            {story.description && (
+              <p className="text-sm sm:text-base text-[var(--muted-foreground)] font-serif italic max-w-2xl">
+                &ldquo;{story.description}&rdquo;
+              </p>
+            )}
+
+            {/* Author Attribution */}
+            <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-2">
+              <span>Initiated by</span>
+              <span className="font-medium text-[var(--foreground)]">
+                {story.owner?.display_name || story.owner?.username || "StoryRemix Writer"}
+              </span>
+            </div>
+
+            {/* Stats & Progress Strip */}
+            <div className="flex flex-wrap items-center justify-between gap-4 pt-2 text-xs text-[var(--muted-foreground)]">
+              <div className="flex items-center gap-4 flex-wrap">
+                <span className="flex items-center gap-1.5">
+                  <BookOpen className="w-4 h-4 text-amber-700" />
+                  <strong className="text-[var(--foreground)]">{segments.length}</strong> of{" "}
+                  {story.max_paragraphs} Paragraphs
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-amber-700" />
+                  <strong className="text-[var(--foreground)]">{uniqueAuthors.size}</strong>{" "}
+                  Contributors
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <DonationModal
+                  storyId={story.id}
+                  storyTitle={story.title}
+                  contributorsCount={uniqueAuthors.size}
+                />
+                <GiftModal
+                  storyId={story.id}
+                  storyTitle={story.title}
+                  uniqueAuthorsCount={uniqueAuthors.size}
+                />
+                <StoryInteractionBar
+                  storyId={story.id}
+                  initialLikes={likesCount || 0}
+                  initialIsLiked={isLiked}
+                  initialIsBookmarked={isBookmarked}
+                  storyTitle={story.title}
+                />
+              </div>
+            </div>
+
+            {/* Free Social Reactions Bar */}
+            <StoryReactionBar
+              storyId={story.id}
+              initialReactions={initialReactions}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Published Story Paragraphs Reader */}
@@ -325,6 +367,9 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
           />
         </section>
       )}
+
+      {/* Non-intrusive AdSlot for Story Page Footer (Disabled by default) */}
+      <AdSlot slotId="story_footer_banner" format="horizontal" />
     </div>
   );
 }
