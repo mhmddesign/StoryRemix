@@ -41,10 +41,13 @@ export interface StoryCardData {
     round_number: number;
     paragraph_position: number;
     deadline_at: string;
-    status: string;
+    status?: string;
+    candidates_count?: number;
+    top_vote_count?: number;
   } | null;
   is_liked?: boolean;
   is_bookmarked?: boolean;
+  is_demo?: boolean;
 }
 
 export function StoryCard({ story }: { story: StoryCardData }) {
@@ -115,6 +118,16 @@ export function StoryCard({ story }: { story: StoryCardData }) {
         {/* Content Section */}
         <div className="p-4 space-y-3">
           <div className="space-y-1">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-[10px] font-semibold tracking-wider uppercase text-amber-800 dark:text-amber-400">
+                {story.genre}
+              </span>
+              {story.is_demo && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-800 dark:text-amber-300 text-[9px] font-bold border border-amber-600/25">
+                  Showcase
+                </span>
+              )}
+            </div>
             <h3 className="font-serif text-base font-bold text-[var(--foreground)] group-hover:text-amber-800 dark:group-hover:text-amber-300 transition-colors line-clamp-1">
               {story.title}
             </h3>

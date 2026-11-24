@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { StoryCard, StoryCardData } from "@/components/story/story-card";
+import { blendStoriesWithShowcase } from "@/lib/showcase-service";
 import { Flame, Clock } from "lucide-react";
 
 export default async function ActiveRoundsPage() {
@@ -67,12 +68,16 @@ export default async function ActiveRoundsPage() {
         },
         is_liked: userLikes.has(s.id),
         is_bookmarked: userBookmarks.has(s.id),
+        is_demo: s.is_demo || false,
       });
     }
   });
 
+  const allActiveRounds = blendStoriesWithShowcase(storiesWithOpenRounds, { status: "active" })
+    .filter((s) => s.active_round);
+
   // Sort by deadline urgency (closest deadline first)
-  storiesWithOpenRounds.sort((a, b) => {
+  allActiveRounds.sort((a, b) => {
     const deadA = new Date(a.active_round?.deadline_at || 0).getTime();
     const deadB = new Date(b.active_round?.deadline_at || 0).getTime();
     return deadA - deadB;
@@ -93,7 +98,7 @@ export default async function ActiveRoundsPage() {
         </p>
       </div>
 
-      {storiesWithOpenRounds.length === 0 ? (
+      {allActiveRounds.length === 0 ? (
         <div className="p-12 rounded-2xl border border-dashed border-[var(--border)] text-center space-y-2">
           <Clock className="w-8 h-8 text-[var(--muted-foreground)] mx-auto opacity-50" />
           <h3 className="font-semibold text-sm text-[var(--foreground)]">No active rounds right now</h3>
@@ -103,7 +108,7 @@ export default async function ActiveRoundsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {storiesWithOpenRounds.map((story) => (
+          {allActiveRounds.map((story) => (
             <StoryCard key={story.id} story={story} />
           ))}
         </div>

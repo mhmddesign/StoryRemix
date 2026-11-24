@@ -39,6 +39,10 @@ export interface Database {
           preferred_language: string;
           role: UserRole;
           privacy_settings: Json;
+          is_demo?: boolean;
+          onboarding_completed?: boolean;
+          onboarding_step?: number;
+          literary_interests?: string[];
           created_at: string;
           updated_at: string;
         };
@@ -51,6 +55,10 @@ export interface Database {
           preferred_language?: string;
           role?: UserRole;
           privacy_settings?: Json;
+          is_demo?: boolean;
+          onboarding_completed?: boolean;
+          onboarding_step?: number;
+          literary_interests?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -63,6 +71,10 @@ export interface Database {
           preferred_language?: string;
           role?: UserRole;
           privacy_settings?: Json;
+          is_demo?: boolean;
+          onboarding_completed?: boolean;
+          onboarding_step?: number;
+          literary_interests?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -87,6 +99,7 @@ export interface Database {
           default_vote_threshold: number;
           default_round_duration: number;
           status: StoryStatus;
+          is_demo?: boolean;
           created_at: string;
           updated_at: string;
           completed_at: string | null;
@@ -109,6 +122,7 @@ export interface Database {
           default_vote_threshold?: number;
           default_round_duration?: number;
           status?: StoryStatus;
+          is_demo?: boolean;
           created_at?: string;
           updated_at?: string;
           completed_at?: string | null;
@@ -1512,6 +1526,231 @@ export interface Database {
             referencedColumns: ["id"];
           }
         ];
+      };
+      wallets: {
+        Row: {
+          user_id: string;
+          earned_points: number;
+          purchased_credits: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          earned_points?: number;
+          purchased_credits?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          earned_points?: number;
+          purchased_credits?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      wallet_transactions: {
+        Row: {
+          id: string;
+          wallet_id: string;
+          currency: "earned_points" | "purchased_credits";
+          amount: number;
+          transaction_type: string;
+          reference_id: string | null;
+          description: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          wallet_id: string;
+          currency: "earned_points" | "purchased_credits";
+          amount: number;
+          transaction_type: string;
+          reference_id?: string | null;
+          description?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          wallet_id?: string;
+          currency?: "earned_points" | "purchased_credits";
+          amount?: number;
+          transaction_type?: string;
+          reference_id?: string | null;
+          description?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      referral_codes: {
+        Row: {
+          code: string;
+          user_id: string;
+          clicks_count: number;
+          created_at: string;
+        };
+        Insert: {
+          code: string;
+          user_id: string;
+          clicks_count?: number;
+          created_at?: string;
+        };
+        Update: {
+          code?: string;
+          user_id?: string;
+          clicks_count?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      referral_events: {
+        Row: {
+          id: string;
+          referrer_id: string;
+          referred_user_id: string;
+          referral_code: string;
+          status: "registered" | "qualified" | "rewarded" | "flagged";
+          qualifying_action: string | null;
+          reward_points: number;
+          rewarded_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          referrer_id: string;
+          referred_user_id: string;
+          referral_code: string;
+          status?: "registered" | "qualified" | "rewarded" | "flagged";
+          qualifying_action?: string | null;
+          reward_points?: number;
+          rewarded_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          referrer_id?: string;
+          referred_user_id?: string;
+          referral_code?: string;
+          status?: "registered" | "qualified" | "rewarded" | "flagged";
+          qualifying_action?: string | null;
+          reward_points?: number;
+          rewarded_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      payment_packages: {
+        Row: {
+          id: string;
+          name: string;
+          credits_amount: number;
+          price_cents: number;
+          currency: string;
+          badge: string | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          name: string;
+          credits_amount: number;
+          price_cents: number;
+          currency?: string;
+          badge?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          credits_amount?: number;
+          price_cents?: number;
+          currency?: string;
+          badge?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      payment_orders: {
+        Row: {
+          id: string;
+          user_id: string;
+          provider: string;
+          session_id: string | null;
+          package_id: string;
+          credits_amount: number;
+          amount_cents: number;
+          currency: string;
+          status: "pending" | "completed" | "failed" | "refunded";
+          idempotency_key: string | null;
+          created_at: string;
+          completed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          provider: string;
+          session_id?: string | null;
+          package_id: string;
+          credits_amount: number;
+          amount_cents: number;
+          currency?: string;
+          status?: "pending" | "completed" | "failed" | "refunded";
+          idempotency_key?: string | null;
+          created_at?: string;
+          completed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          provider?: string;
+          session_id?: string | null;
+          package_id?: string;
+          credits_amount?: number;
+          amount_cents?: number;
+          currency?: string;
+          status?: "pending" | "completed" | "failed" | "refunded";
+          idempotency_key?: string | null;
+          created_at?: string;
+          completed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      payment_webhook_events: {
+        Row: {
+          id: string;
+          provider: string;
+          event_id: string;
+          event_type: string;
+          payload: Json;
+          processed: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          provider: string;
+          event_id: string;
+          event_type: string;
+          payload: Json;
+          processed?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          provider?: string;
+          event_id?: string;
+          event_type?: string;
+          payload?: Json;
+          processed?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
       };
     };
     Views: {

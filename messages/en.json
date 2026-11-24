@@ -272,5 +272,32 @@
       "openingInvalid": "Opening paragraph must contain between 2 and 5 sentences (currently {count}).",
       "launchFailed": "Could not create story. Please verify your profile and try again."
     }
+  },
+  "store": {
+    "title": "The Literary Store",
+    "subtitle": "Send appreciation gifts and support contributing authors.",
+    "earnedPoints": "Earned Points",
+    "purchasedCredits": "Purchased Credits",
+    "allGifts": "All Gifts",
+    "creditPacks": "Credit Packs",
+    "buySandbox": "Buy in Sandbox"
+  },
+  "wallet": {
+    "title": "Wallet & Ledger",
+    "subtitle": "Manage your virtual points, credits, and transaction ledger.",
+    "ledgerTitle": "Transaction History Ledger",
+    "filterAll": "All",
+    "filterPoints": "Points",
+    "filterCredits": "Credits"
+  },
+  "referrals": {
+    "title": "Invite Friends",
+    "subtitle": "Share your link to earn 100 points per qualified friend.",
+    "copyLink": "Copy Link",
+    "linkCopied": "Link Copied",
+    "clicks": "Link Clicks",
+    "registered": "Registered",
+    "qualified": "Qualified",
+    "pointsEarned": "Points Earned"
   }
 }

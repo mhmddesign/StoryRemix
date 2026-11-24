@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { StoryCard, StoryCardData } from "@/components/story/story-card";
+import { blendStoriesWithShowcase } from "@/lib/showcase-service";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { Compass, Search, Filter } from "lucide-react";
 
@@ -72,7 +73,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
     bmarks?.forEach((b) => userBookmarks.add(b.story_id));
   }
 
-  const stories: StoryCardData[] = (storiesRaw || []).map((s: any) => {
+  const dbStories: StoryCardData[] = (storiesRaw || []).map((s: any) => {
     const openRound = s.rounds?.find((r: any) =>
       ["open", "evaluating", "awaiting_creator_resolution"].includes(r.status)
     );
@@ -103,8 +104,11 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
         : null,
       is_liked: userLikes.has(s.id),
       is_bookmarked: userBookmarks.has(s.id),
+      is_demo: s.is_demo || false,
     };
   });
+
+  const stories = blendStoriesWithShowcase(dbStories, { q, genre, lang });
 
   return (
     <div className="space-y-8 py-4">

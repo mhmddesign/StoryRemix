@@ -90,7 +90,7 @@ export function Footer() {
         </div>
 
         <div className="pt-8 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between text-xs text-[var(--muted-foreground)] gap-4">
-          <p>© {new Date().getFullYear()} {t("common.appName")}. {t("legal.allRightsReserved")}</p>
+          <p>© {new Date().getFullYear()} StoryRemix. Proprietary to MHMD.STUDIO. All rights reserved.</p>
           <p className="flex items-center gap-1">
             <span>Crafted for creative minds with</span>
             <Heart className="w-3.5 h-3.5 text-amber-600 fill-amber-600" />

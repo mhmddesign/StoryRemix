@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { StoryReader } from "@/components/story/story-reader";
 import { ActiveRoundWidget, StoryRoundData } from "@/components/story/active-round-widget";
@@ -10,7 +11,8 @@ import { RemixModalTrigger } from "@/components/story/remix-modal-trigger";
 import { StoryCover } from "@/components/story/story-cover";
 import { CoverProposalsModal } from "@/components/story/cover-proposals-modal";
 import { AdSlot } from "@/components/ads/ad-slot";
-import { BookOpen, Users, Flame, CheckCircle2, DollarSign, Scale } from "lucide-react";
+import { getShowcaseStoryBySlug } from "@/lib/showcase-service";
+import { BookOpen, Users, Flame, CheckCircle2, DollarSign, Scale, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 
 interface StoryPageProps {
@@ -29,7 +31,9 @@ export async function generateMetadata({ params }: StoryPageProps): Promise<Meta
     .eq("slug", slug)
     .single();
 
-  const story = storyRaw as any;
+  const showcase = getShowcaseStoryBySlug(slug);
+  const story = (storyRaw as any) || showcase;
+
   if (!story) {
     return { title: "Story Not Found | StoryRemix" };
   }
@@ -49,7 +53,7 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 1. Fetch story
+  // 1. Fetch story from database
   const { data: storyRaw, error: storyError } = await supabase
     .from("stories")
     .select(`
@@ -59,36 +63,51 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
     .eq("slug", slug)
     .single();
 
-  const story = storyRaw as any;
-  if (storyError || !story) {
+  const showcase = getShowcaseStoryBySlug(slug);
+
+  // If no DB story found, fall back to showcase story
+  const story = (storyRaw as any) || showcase;
+  if (!story) {
     notFound();
   }
 
-  // 2. Fetch canonical story segments
-  const { data: segmentsRaw } = await supabase
-    .from("story_segments")
-    .select(`
-      id,
-      paragraph_index,
-      body,
-      vote_count_at_lock,
-      author:profiles!story_segments_author_id_fkey(id, username, display_name, avatar_url)
-    `)
-    .eq("story_id", story.id)
-    .order("paragraph_index", { ascending: true });
+  const isShowcaseStory = !storyRaw && !!showcase;
 
-  const segments = (segmentsRaw || []).map((s: any) => ({
-    id: s.id,
-    paragraph_index: s.paragraph_index,
-    body: s.body,
-    vote_count_at_lock: s.vote_count_at_lock,
-    author: s.author || {
-      id: "unknown",
-      username: "writer",
-      display_name: "Collaborator",
-      avatar_url: null,
-    },
-  }));
+  // 2. Fetch canonical story segments
+  let segments: any[] = [];
+  if (isShowcaseStory) {
+    segments = showcase.segments;
+  } else {
+    const { data: segmentsRaw } = await supabase
+      .from("story_segments")
+      .select(`
+        id,
+        paragraph_index,
+        body,
+        vote_count_at_lock,
+        author:profiles!story_segments_author_id_fkey(id, username, display_name, avatar_url)
+      `)
+      .eq("story_id", story.id)
+      .order("paragraph_index", { ascending: true });
+
+    segments = (segmentsRaw || []).map((s: any) => ({
+      id: s.id,
+      paragraph_index: s.paragraph_index,
+      body: s.body,
+      vote_count_at_lock: s.vote_count_at_lock,
+      author: s.author || {
+        id: "unknown",
+        username: "writer",
+        display_name: "Collaborator",
+        avatar_url: null,
+      },
+    }));
+
+    // If DB story has 0 segments (e.g. from prior creation bugs) and showcase version exists, fallback to showcase
+    if (segments.length === 0 && showcase) {
+      segments = showcase.segments;
+    }
+  }
 
   // 3. Fetch active or latest round if not completed
   let roundData: StoryRoundData | null = null;
@@ -158,6 +177,27 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
     }
   }
 
+  // Fallback roundData for showcase stories
+  if (!roundData && showcase?.active_round) {
+    roundData = {
+      id: showcase.active_round.id,
+      story_id: showcase.id,
+      round_number: showcase.active_round.round_number,
+      paragraph_position: showcase.active_round.paragraph_position,
+      vote_threshold: showcase.active_round.vote_threshold,
+      deadline_at: showcase.active_round.deadline_at,
+      status: showcase.active_round.status,
+      candidates: showcase.active_round.candidates.map((c) => ({
+        ...c,
+        round_id: showcase.active_round!.id,
+        author_id: c.author.id,
+        word_count: c.body.split(/\s+/).length,
+      })),
+      userVotedContributionId: null,
+      storyOwnerId: showcase.owner_id,
+    };
+  }
+
   // 4. Fetch like & bookmark status
   let isLiked = false;
   let isBookmarked = false;
@@ -214,7 +254,7 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
     .limit(1)
     .maybeSingle();
 
-  const policy = policyRaw as any;
+  const policy = (policyRaw as any) || showcase?.revenue_policy;
   const policyLabel =
     policy?.policy_type === "contribution_weighted"
       ? "Contribution Weighted (Proportional)"
@@ -229,6 +269,27 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
 
   return (
     <div className="max-w-4xl mx-auto py-6 space-y-10">
+      {/* Community Showcase Banner if demo content */}
+      {(story.is_demo || isShowcaseStory) && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-600/30 text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0" />
+            <div>
+              <span className="font-bold uppercase tracking-wider text-[11px]">Community Showcase Story</span>
+              <p className="text-[11px] text-[var(--muted-foreground)]">
+                This curated narrative demonstrates collaborative rounds, paragraph attribution, and virtual appreciation gifts.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/stories/new"
+            className="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-amber-800 hover:bg-amber-900 text-white font-semibold text-xs transition-colors shrink-0"
+          >
+            Start Your Own Story
+          </Link>
+        </div>
+      )}
+
       {/* Story Metadata & Cover Hero Header */}
       <div className="border-b border-[var(--border)] pb-8">
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 sm:gap-8 items-start">
@@ -347,6 +408,7 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
           storyTitle={story.title}
           isCompleted={story.status === "completed"}
           totalParagraphs={story.max_paragraphs}
+          storyId={story.id}
         />
       </section>
 

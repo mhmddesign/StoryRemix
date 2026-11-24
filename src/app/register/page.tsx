@@ -1,21 +1,39 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Feather, User, Mail, Lock, Globe, ArrowRight, Loader2 } from "lucide-react";
+import { Feather, User, Mail, Lock, Globe, ArrowRight, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { recordReferralSignup } from "@/app/actions/referral-actions";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [language, setLanguage] = useState("en");
+  const [referralCode, setReferralCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const urlRef = searchParams.get("ref");
+    if (urlRef) {
+      setReferralCode(urlRef);
+      try {
+        localStorage.setItem("storyremix_ref", urlRef);
+      } catch {}
+    } else {
+      try {
+        const stored = localStorage.getItem("storyremix_ref");
+        if (stored) setReferralCode(stored);
+      } catch {}
+    }
+  }, [searchParams]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +68,15 @@ export default function RegisterPage() {
         return;
       }
 
+      // Record referral if code was provided
+      if (data.user?.id && referralCode) {
+        try {
+          await recordReferralSignup(data.user.id, referralCode);
+        } catch {
+          // Non-blocking
+        }
+      }
+
       if (data.session) {
         toast.success("Welcome to StoryRemix! Your account is ready.");
         router.push("/");
@@ -75,6 +102,13 @@ export default function RegisterPage() {
         <p className="text-xs text-[var(--muted-foreground)]">
           Join thousands of writers co-authoring endless stories.
         </p>
+
+        {referralCode && (
+          <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-600/10 text-emerald-700 dark:text-emerald-400 border border-emerald-600/20">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Invited with code: {referralCode} (+25 pts)</span>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleRegister} className="space-y-4 text-sm">
@@ -175,5 +209,13 @@ export default function RegisterPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-sm text-[var(--muted-foreground)]">Loading...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

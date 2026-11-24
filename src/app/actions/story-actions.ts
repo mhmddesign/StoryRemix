@@ -178,7 +178,13 @@ export async function createStoryAction(formData: FormData) {
     });
 
     if (segmentError) {
-      return { success: false, error: "Failed to initialize opening story paragraph." };
+      console.error("Story creation failed at segment insert:", segmentError);
+      // Strict atomic rollback: clean up orphaned story record immediately
+      await supabase.from("stories").delete().eq("id", story.id);
+      return {
+        success: false,
+        error: `Failed to initialize opening story paragraph: ${segmentError.message}`,
+      };
     }
 
     // 3. Open Round 1 for Paragraph 2
@@ -195,11 +201,15 @@ export async function createStoryAction(formData: FormData) {
     });
 
     if (roundError) {
-      return { success: false, error: "Failed to open round 1." };
+      console.error("Story creation failed at round insert:", roundError);
+      // Strict atomic rollback: clean up segment and story
+      await supabase.from("story_segments").delete().eq("story_id", story.id);
+      await supabase.from("stories").delete().eq("id", story.id);
+      return { success: false, error: `Failed to open round 1: ${roundError.message}` };
     }
 
     // 4. Save Revenue Sharing Policy
-    await supabase.from("author_revenue_policies").insert({
+    const { error: policyError } = await supabase.from("author_revenue_policies").insert({
       story_id: story.id,
       policy_type: values.revenuePolicyType,
       creator_reserved_percentage: values.creatorReservedPercentage,
@@ -209,6 +219,18 @@ export async function createStoryAction(formData: FormData) {
       version: 1,
       is_locked: false,
     });
+
+    if (policyError) {
+      console.error("Story creation failed at policy insert:", policyError);
+      // Strict atomic rollback: clean up round, segment, and story
+      await supabase.from("story_rounds").delete().eq("story_id", story.id);
+      await supabase.from("story_segments").delete().eq("story_id", story.id);
+      await supabase.from("stories").delete().eq("id", story.id);
+      return {
+        success: false,
+        error: `Failed to configure revenue policy: ${policyError.message}`,
+      };
+    }
   }
 
   // 5. Award Creator XP & Unlock Achievements

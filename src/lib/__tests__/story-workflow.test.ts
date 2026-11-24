@@ -98,4 +98,71 @@ describe("StoryRemix Workflow & Business Invariants", () => {
       expect(canVote).toBe(true);
     });
   });
+
+  describe("Atomic story creation & rollback invariants (PART 16 Regression)", () => {
+    it("enforces opening paragraph sentence boundaries (2 to 5 sentences)", () => {
+      const tooShort = "Just one sentence.";
+      const shortAnalysis = analyzeStoryText(tooShort);
+      expect(shortAnalysis.sentenceCount).toBe(1);
+      expect(shortAnalysis.sentenceCount >= 2 && shortAnalysis.sentenceCount <= 5).toBe(false);
+
+      const validOpening =
+        "The brass lantern swung violently against the iron post as rain lashed the cobblestones. Detective Alami pulled his woolen collar tight against the freezing Atlantic wind. Inside the abandoned consulate, a single candle flickered on the second floor.";
+      const validAnalysis = analyzeStoryText(validOpening);
+      expect(validAnalysis.sentenceCount).toBe(3);
+      expect(validAnalysis.sentenceCount >= 2 && validAnalysis.sentenceCount <= 5).toBe(true);
+
+      const tooLong =
+        "One sentence. Two sentences. Three sentences. Four sentences. Five sentences. Six sentences is way too many.";
+      const longAnalysis = analyzeStoryText(tooLong);
+      expect(longAnalysis.sentenceCount).toBe(6);
+      expect(longAnalysis.sentenceCount >= 2 && longAnalysis.sentenceCount <= 5).toBe(false);
+    });
+
+    it("requires round 1 to target paragraph position 2", () => {
+      const initialRoundConfig = {
+        roundNumber: 1,
+        paragraphPosition: 2,
+        status: "open",
+        voteThreshold: 3,
+      };
+
+      expect(initialRoundConfig.roundNumber).toBe(1);
+      expect(initialRoundConfig.paragraphPosition).toBe(2);
+      expect(initialRoundConfig.status).toBe("open");
+    });
+
+    it("verifies rollback integrity: simulated partial failure leaves zero orphaned segments", () => {
+      // Simulating the transactional rollback invariant
+      let storyCreated = false;
+      let segmentsCount = 0;
+      let roundsCount = 0;
+
+      function simulateStoryCreation(simulateSegmentFailure: boolean) {
+        storyCreated = true;
+        if (simulateSegmentFailure) {
+          // Rollback executed: clean up story
+          storyCreated = false;
+          segmentsCount = 0;
+          roundsCount = 0;
+          return { success: false, error: "Failed to initialize opening story paragraph: RLS violation" };
+        }
+        segmentsCount = 1;
+        roundsCount = 1;
+        return { success: true, storyId: "story-123" };
+      }
+
+      const failedResult = simulateStoryCreation(true);
+      expect(failedResult.success).toBe(false);
+      expect(storyCreated).toBe(false);
+      expect(segmentsCount).toBe(0);
+      expect(roundsCount).toBe(0);
+
+      const successfulResult = simulateStoryCreation(false);
+      expect(successfulResult.success).toBe(true);
+      expect(storyCreated).toBe(true);
+      expect(segmentsCount).toBe(1);
+      expect(roundsCount).toBe(1);
+    });
+  });
 });

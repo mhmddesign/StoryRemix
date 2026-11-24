@@ -7,31 +7,58 @@ import { Database } from "@/types/database";
 import { ensureUserProfile } from "@/app/actions/auth-actions";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+export interface UserWallet {
+  earned_points: number;
+  purchased_credits: number;
+}
 
 interface AuthContextType {
   user: User | null;
   profile: Profile | null;
+  wallet: UserWallet | null;
   isLoading: boolean;
   profileError: string | null;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  refreshWallet: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
+  wallet: null,
   isLoading: true,
   profileError: null,
   signOut: async () => {},
   refreshProfile: async () => {},
+  refreshWallet: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [wallet, setWallet] = useState<UserWallet | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
   const supabase = createClient();
+
+  const fetchWallet = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from("wallets")
+        .select("earned_points, purchased_credits")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (data) {
+        setWallet(data);
+      } else {
+        setWallet({ earned_points: 0, purchased_credits: 0 });
+      }
+    } catch {
+      setWallet({ earned_points: 0, purchased_credits: 0 });
+    }
+  };
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -44,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data) {
         setProfile(data);
+        fetchWallet(userId);
         return;
       }
 
@@ -51,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const healResult = await ensureUserProfile();
       if (healResult.success && healResult.profile) {
         setProfile(healResult.profile);
+        fetchWallet(userId);
       } else if (error) {
         setProfileError(error.message);
       }
@@ -61,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const healResult = await ensureUserProfile();
         if (healResult.success && healResult.profile) {
           setProfile(healResult.profile);
+          fetchWallet(userId);
         }
       } catch {
         setProfileError("Could not load user profile.");
@@ -71,6 +101,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshProfile = async () => {
     if (user?.id) {
       await fetchProfile(user.id);
+    }
+  };
+
+  const refreshWallet = async () => {
+    if (user?.id) {
+      await fetchWallet(user.id);
     }
   };
 
@@ -131,10 +167,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         profile,
+        wallet,
         isLoading,
         profileError,
         signOut,
         refreshProfile,
+        refreshWallet,
       }}
     >
       {children}

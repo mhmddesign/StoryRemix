@@ -8,6 +8,7 @@ import { CreativePathCard } from "@/components/profile/creative-path-card";
 import { ProfileEditModal } from "@/components/profile/profile-edit-modal";
 import { evaluateCommunityArchetype } from "@/lib/gamification";
 import { ensureUserProfile } from "@/app/actions/auth-actions";
+import { getShowcaseProfileByUsername, getAllShowcaseStories } from "@/lib/showcase-service";
 import {
   Calendar,
   Award,
@@ -66,8 +67,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     }
   }
 
+  // Check showcase author directory
+  const showcaseProfile = !profileRaw ? getShowcaseProfileByUsername(username) : null;
+
   // If still not found, render a friendly profile not found screen
-  if (!profileRaw) {
+  if (!profileRaw && !showcaseProfile) {
     return (
       <div className="max-w-xl mx-auto py-20 px-4 text-center space-y-5">
         <div className="w-16 h-16 rounded-3xl bg-amber-700/10 text-amber-700 dark:text-amber-400 mx-auto flex items-center justify-center">
@@ -100,39 +104,76 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     );
   }
 
-  const profile = profileRaw as any;
+  const profile = (profileRaw as any) || {
+    id: showcaseProfile!.id,
+    username: showcaseProfile!.username,
+    display_name: showcaseProfile!.display_name,
+    avatar_url: showcaseProfile!.avatar_url,
+    bio: showcaseProfile!.bio,
+    created_at: showcaseProfile!.registration_date,
+    preferred_language: showcaseProfile!.preferred_language,
+    is_demo: true,
+    literary_interests: showcaseProfile!.literary_interests,
+  };
   const isOwner = user?.id === profile.id;
+  const isShowcase = !!showcaseProfile;
 
   // 2. Fetch created stories
-  const { data: createdStoriesRaw } = await supabase
-    .from("stories")
-    .select(`
-      *,
-      owner:profiles!stories_owner_id_fkey(id, username, display_name, avatar_url),
-      rounds:story_rounds(id, round_number, paragraph_position, deadline_at, status)
-    `)
-    .eq("owner_id", profile.id)
-    .order("created_at", { ascending: false });
+  let createdStoriesRaw: any[] | null = null;
+  let segmentsWon: any[] | null = null;
+  let gamificationRaw: any = null;
 
-  // 3. Fetch winning segments written by this user
-  const { data: segmentsWon } = await supabase
-    .from("story_segments")
-    .select(`
-      id,
-      paragraph_index,
-      body,
-      vote_count_at_lock,
-      story:stories!story_segments_story_id_fkey(title, slug)
-    `)
-    .eq("author_id", profile.id)
-    .order("created_at", { ascending: false });
+  if (isShowcase) {
+    const allShowcase = getAllShowcaseStories();
+    createdStoriesRaw = allShowcase.filter((s) => s.owner_id === profile.id);
+    segmentsWon = allShowcase.flatMap((s) =>
+      s.segments
+        .filter((seg) => seg.author.id === profile.id && seg.paragraph_index > 1)
+        .map((seg) => ({
+          id: seg.id,
+          paragraph_index: seg.paragraph_index,
+          body: seg.body,
+          vote_count_at_lock: seg.vote_count_at_lock,
+          story: { title: s.title, slug: s.slug },
+        }))
+    );
+    gamificationRaw = {
+      lifetime_xp: showcaseProfile!.xp,
+      current_level: showcaseProfile!.level,
+      creative_path: showcaseProfile!.creative_path,
+    };
+  } else {
+    const { data: dbStories } = await supabase
+      .from("stories")
+      .select(`
+        *,
+        owner:profiles!stories_owner_id_fkey(id, username, display_name, avatar_url),
+        rounds:story_rounds(id, round_number, paragraph_position, deadline_at, status)
+      `)
+      .eq("owner_id", profile.id)
+      .order("created_at", { ascending: false });
+    createdStoriesRaw = dbStories;
 
-  // 4. Fetch user gamification state
-  const { data: gamificationRaw } = await supabase
-    .from("user_gamification")
-    .select("*")
-    .eq("user_id", profile.id)
-    .maybeSingle();
+    const { data: dbSegments } = await supabase
+      .from("story_segments")
+      .select(`
+        id,
+        paragraph_index,
+        body,
+        vote_count_at_lock,
+        story:stories!story_segments_story_id_fkey(title, slug)
+      `)
+      .eq("author_id", profile.id)
+      .order("created_at", { ascending: false });
+    segmentsWon = dbSegments;
+
+    const { data: dbGamification } = await supabase
+      .from("user_gamification")
+      .select("*")
+      .eq("user_id", profile.id)
+      .maybeSingle();
+    gamificationRaw = dbGamification;
+  }
 
   const lifetimeXp = gamificationRaw?.lifetime_xp || 0;
   const creativePath = gamificationRaw?.creative_path || "storyteller";
@@ -196,6 +237,19 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   return (
     <div className="max-w-5xl mx-auto py-8 space-y-10 px-4 sm:px-0">
+      {/* Community Showcase Banner if demo profile */}
+      {isShowcase && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-600/30 text-amber-900 dark:text-amber-200 flex items-center gap-3 text-xs shadow-xs">
+          <Sparkles className="w-5 h-5 text-amber-700 dark:text-amber-400 shrink-0" />
+          <div>
+            <span className="font-bold uppercase tracking-wider text-[11px]">Curated Community Showcase Writer</span>
+            <p className="text-[11px] text-[var(--muted-foreground)]">
+              This is a fictional showcase writer profile demonstrating platform XP progression, literary paths, and collaborative story participation.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header Profile Card */}
       <div className="relative p-6 sm:p-10 rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-sm space-y-6 overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">

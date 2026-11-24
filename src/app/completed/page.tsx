@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { StoryCard, StoryCardData } from "@/components/story/story-card";
+import { blendStoriesWithShowcase } from "@/lib/showcase-service";
 import { CheckCircle2, Sparkles } from "lucide-react";
 
 export default async function CompletedAnthologyPage() {
@@ -52,7 +53,10 @@ export default async function CompletedAnthologyPage() {
     active_round: null,
     is_liked: userLikes.has(s.id),
     is_bookmarked: userBookmarks.has(s.id),
+    is_demo: s.is_demo || false,
   }));
+
+  const allCompleted = blendStoriesWithShowcase(completedStories, { status: "completed" });
 
   return (
     <div className="space-y-8 py-4">
@@ -69,7 +73,7 @@ export default async function CompletedAnthologyPage() {
         </p>
       </div>
 
-      {completedStories.length === 0 ? (
+      {allCompleted.length === 0 ? (
         <div className="p-12 rounded-2xl border border-dashed border-[var(--border)] text-center space-y-2">
           <CheckCircle2 className="w-8 h-8 text-[var(--muted-foreground)] mx-auto opacity-50" />
           <h3 className="font-semibold text-sm text-[var(--foreground)]">No stories completed yet</h3>
@@ -79,7 +83,7 @@ export default async function CompletedAnthologyPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {completedStories.map((story) => (
+          {allCompleted.map((story) => (
             <StoryCard key={story.id} story={story} />
           ))}
         </div>

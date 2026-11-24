@@ -272,5 +272,32 @@
       "openingInvalid": "Le paragraphe d'ouverture doit contenir entre 2 et 5 phrases (actuellement {count}).",
       "launchFailed": "Impossible de créer l'histoire. Veuillez vérifier votre profil et réessayer."
     }
+  },
+  "store": {
+    "title": "La Boutique Littéraire",
+    "subtitle": "Envoyez des cadeaux d'appréciation et soutenez les auteurs contributeurs.",
+    "earnedPoints": "Points Gagnés",
+    "purchasedCredits": "Crédits Achetés",
+    "allGifts": "Tous les Cadeaux",
+    "creditPacks": "Packs de Crédits",
+    "buySandbox": "Acheter en Sandbox"
+  },
+  "wallet": {
+    "title": "Portefeuille & Registre",
+    "subtitle": "Gérez vos points virtuels, crédits et le grand livre de vos transactions.",
+    "ledgerTitle": "Grand Livre des Transactions",
+    "filterAll": "Tous",
+    "filterPoints": "Points",
+    "filterCredits": "Crédits"
+  },
+  "referrals": {
+    "title": "Inviter des Amis",
+    "subtitle": "Partagez votre lien pour gagner 100 points par ami qualifié.",
+    "copyLink": "Copier le Lien",
+    "linkCopied": "Lien Copié",
+    "clicks": "Visites du Lien",
+    "registered": "Inscrits",
+    "qualified": "Qualifiés",
+    "pointsEarned": "Points Gagnés"
   }
 }

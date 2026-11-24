@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { StoryCard, StoryCardData } from "@/components/story/story-card";
 import { calculateHotScore, calculateTrendingScore } from "@/lib/leaderboards";
+import { blendStoriesWithShowcase } from "@/lib/showcase-service";
 import { HomeHero } from "@/components/home/home-hero";
 import { HomePrimitiveSteps } from "@/components/home/home-primitive-steps";
 import { HomeFeedTabs } from "@/components/home/home-feed-tabs";
@@ -83,7 +84,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const { data: rawStories } = requiresAuthPrompt ? { data: [] } : await query;
 
   // Transform raw stories into Card Data
-  let stories: StoryCardData[] = (rawStories || []).map((s: any) => {
+  const dbStories: StoryCardData[] = (rawStories || []).map((s: any) => {
     const openRound = s.rounds?.find((r: any) =>
       ["open", "evaluating", "awaiting_creator_resolution"].includes(r.status)
     );
@@ -114,8 +115,14 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         : null,
       is_liked: userLikes.has(s.id),
       is_bookmarked: userBookmarks.has(s.id),
+      is_demo: s.is_demo || false,
     };
   });
+
+  // Blend with showcase community stories so the platform is ALWAYS vibrant and active
+  const stories = requiresAuthPrompt
+    ? []
+    : blendStoriesWithShowcase(dbStories, { tab: activeTab, limit: 18 });
 
   // Apply tab-specific sorting algorithms
   if (activeTab === "hot") {

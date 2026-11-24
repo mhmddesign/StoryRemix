@@ -1,98 +1,143 @@
-# StoryRemix
+<div align="center">
 
-> **"One story. Many minds. Endless possibilities."**
+  <img src="public/favicon.svg" alt="StoryRemix Logo" width="80" height="80" />
 
-StoryRemix is a collaborative storytelling social platform where users co-create narrative literature, one paragraph at a time. Through community-driven rounds, writers submit 2-to-3 sentence continuations, voters elect the winning direction, and completed stories preserve moral and canonical attribution for every contributing author.
+  # StoryRemix 2.0
 
----
+  **"One story. Many minds. Endless possibilities."**
 
-## Key Features
+  *The premier collaborative fiction platform, democratic storytelling engine, and literary creator economy.*
 
-- **Core Story Engine**:
-  - Author plants a genesis paragraph (2–5 sentences), sets target story length (2–30 paragraphs), vote threshold, and round duration.
-  - Competing community continuations submitted during active rounds (strictly validated 2–3 sentences).
-  - Multilingual sentence tokenizer supporting English, French, and Arabic RTL without naive regex pitfalls.
-- **Fair Democratic Voting**:
-  - One vote per user per round, vote-switching enabled before round deadline.
-  - Self-voting prevention enforced at both application and database levels.
-  - Immutable server-side deadlines and transactional vote tallying.
-- **Winner Determination & Creator Fallback**:
-  - Highest-voted candidate at or above threshold automatically appended to canonical story.
-  - Unqualified rounds (threshold not reached or ties) enter an explicit `awaiting_creator_resolution` state with transparent options (extend round, creator override with public disclosure badge, or cancel and reopen).
-- **Story Remixing**:
-  - Readers can branch off any completed story at a chosen paragraph, creating an alternate timeline while perpetually honoring upstream author attribution.
-- **Gamification & Creative Paths**:
-  - 10 Level Progression Tiers (*Newcomer* to *Living Legend*).
-  - 6 Creative Paths (*The Storyteller*, *The Collaborator*, *The Explorer*, *The Curator*, *The Worldbuilder*, *The Patron*).
-  - Milestone achievements across Common, Uncommon, Rare, Epic, and Legendary tiers.
-- **Creator Economy & Co-Author Revenue Sharing**:
-  - Free community emoji reactions and virtual appreciation gifts (🌹, 🪶, 📚, ⭐, 🏆, 👑).
-  - Platform Fee (25%) and Creator Escrow Pool (75%) split via integer basis points.
-  - Four deterministic co-author revenue sharing policies:
-    - **Policy A (Equal Collaborators)**: Equal split among unique contributing authors.
-    - **Policy B (Contribution-Weighted)**: Proportional to canonical accepted paragraphs.
-    - **Policy C (Creator Reserved + Pool)**: Originator receives guaranteed 30% baseline; remaining 70% shared by continuation writers.
-    - **Policy D (Weighted Roles)**: Genesis opening paragraph (2.0x), middle continuations (1.0x), and climax (2.0x).
-  - Strict integer cent arithmetic with residual distribution, guaranteeing total allocations match pool cents.
-  - Pre-submission contributor consent agreements.
-  - Double-entry minor currency accounting ledger.
-- **Leaderboards & Competitions**:
-  - Time-decay Hot score: $(3 \cdot \text{votes} + 5 \cdot \text{contributors} + 2 \cdot \text{likes}) / (\text{hours} + 2)^{1.5}$.
-  - Trending momentum velocity (48h activity window).
-  - Democratic ranking guarantee: Virtual gifts and XP are strictly excluded from ranking calculations.
-  - Monthly Story Cup and Annual Story Laureate awards.
-- **Trust, Moderation & Admin Operations**:
-  - Reporting queue for stories, continuations, comments, and profiles.
-  - Admin dashboard with report management and audit logs.
-- **Production Architecture**:
-  - Next.js 16.4+ (App Router, Turbopack, `src/proxy.ts` convention), React 19.3+, TypeScript strict mode, Tailwind CSS.
-  - Internationalization via `next-intl` with English, French, and Arabic RTL (100% dictionary key parity tested).
-  - Story book covers (standard 2:3 aspect ratio, generative genre-themed typography fallbacks, community proposals, and creator voting/approval).
-  - Voluntary creator donations with exact 90% creator pool and 10% platform fee in integer cents.
-  - Google AdSense preparation (disabled by default, zero CLS, compliant ads.txt).
-  - Private server-side AI provider abstraction (`DisabledAIProvider` default with zero client exposure).
-  - Supabase PostgreSQL with Row Level Security (RLS) on all 19 tables and transactional SQL procedures.
-  - Automated background round expiration cron route (`/api/cron/process-rounds`) with fail-closed authentication.
-  - System health check endpoint (`/api/health`).
+  <p align="center">
+    <a href="https://storyremix-green.vercel.app"><strong>Explore Live Platform »</strong></a>
+  </p>
+
+  [![Next.js](https://img.shields.io/badge/Next.js-16.4.6-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+  [![React](https://img.shields.io/badge/React-19.3.1-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.3-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+  [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
+  [![Vitest](https://img.shields.io/badge/Tests-71%20Passed-FCC72B?style=for-the-badge&logo=vitest)](https://vitest.dev/)
+  [![License](https://img.shields.io/badge/License-Proprietary%20MHMD.STUDIO-92400e?style=for-the-badge)](LICENSE)
+
+</div>
 
 ---
 
-## Documentation Suite
+## 📖 Overview
 
-Detailed architectural, deployment, and operational guides are available in [`docs/`](file:///c:/Users/MHMD/Documents/StoryRemix/docs/):
+**StoryRemix** is a digital literary publication and collaborative creator ecosystem. Writers plant original narrative seeds, competing authors submit punchy continuations in democratic rounds, and community readers elect the winning direction to build living, canonical literature.
 
-- [Architecture Overview](file:///c:/Users/MHMD/Documents/StoryRemix/docs/ARCHITECTURE.md)
-- [Supabase Setup & Master Migration](file:///c:/Users/MHMD/Documents/StoryRemix/docs/SUPABASE_SETUP.md)
-- [Email & Custom SMTP Setup](file:///c:/Users/MHMD/Documents/StoryRemix/docs/EMAIL_SETUP.md)
-- [Internationalization & RTL](file:///c:/Users/MHMD/Documents/StoryRemix/docs/INTERNATIONALIZATION.md)
-- [Story Covers & Community Proposals](file:///c:/Users/MHMD/Documents/StoryRemix/docs/STORY_COVERS.md)
-- [Creator Economy & 90/10 Donations](file:///c:/Users/MHMD/Documents/StoryRemix/docs/DONATIONS_AND_PAYMENTS.md)
-- [Google AdSense Integration](file:///c:/Users/MHMD/Documents/StoryRemix/docs/ADSENSE_SETUP.md)
-- [Production Deployment](file:///c:/Users/MHMD/Documents/StoryRemix/docs/DEPLOYMENT.md)
-- [MVP Diagnostic Audit](file:///c:/Users/MHMD/Documents/StoryRemix/docs/MVP_AUDIT.md)
+StoryRemix 2.0 introduces a complete platform transformation: an idempotent public demo community, guided progressive onboarding, a non-guessable referral engine, a dual-currency virtual economy, and our signature **Paragraph-Level Gifting** system with permanent author attribution.
 
 ---
 
-## Technology Stack
+## ✨ Key Capabilities
 
-| Layer | Technology |
+### 🖋️ 1. Democratic Story Engine
+- **Genesis Seeds**: Authors launch opening chapters (2–5 sentences), setting target story lengths (2–30 paragraphs), vote thresholds, and round deadlines.
+- **Micro-Continuations**: Writers submit tightly validated **2-to-3 sentence candidate paragraphs** during active rounds.
+- **Multilingual Tokenizer**: Robust sentence segmentation supporting English, French, and Arabic punctuation without naive regex flaws.
+- **Democratic Resolution**: One vote per user per round with immutable deadlines; winning contributions lock into the canonical timeline.
+
+### 🏛️ 2. Public Demo Community & Blended Showcase
+- **Never an Empty Platform**: Anonymous visitors and newly registered writers immediately experience an active, vibrant literary guild.
+- **18 Curated Author Personas**: High-fidelity fictional profiles spanning diverse cultural traditions (Dr. Maya Lin, Alexandre Dumas, Tariq Ibn Ziyad, Soraya Benjelloun) with custom avatars, bios, literary archetypes, XP levels, and follower counts.
+- **35 Showcase Stories**: Diverse genres (Sci-Fi, Gothic Horror, Historical Fiction, Romance, Speculative Philosophy) across English, French, and Arabic, featuring active rounds, evaluating stages, and completed novels.
+- **Showcase Distinction**: Subtle, tasteful `"Showcase"` pill badges ensure transparent separation from organic user content without distracting readers.
+
+### 🧭 3. Guided User Onboarding
+- **Progressive Disclosure**: A 7-step guided walkthrough (`OnboardingWizard`) introducing the genesis concept, genre preferences across 10 distinct literary categories, and language selection.
+- **Creator Discovery**: Highlights prominent community writers with interactive 1-click follow capabilities.
+- **Meaningful Action Pathways**: Direct routes into active voting rounds, reading completed anthologies, or planting original stories.
+- **Welcome Bonus**: 50 Earned Points credited automatically upon completion.
+
+### 🚀 4. Referral Growth Engine
+- **Unique Invitation Codes**: Non-guessable codes (`SR-XXXXXX`) derived from cryptographic user hashes.
+- **1-Click Social Sharing**: Native integrations for WhatsApp, X (Twitter), Email, and direct link copy.
+- **Dedicated Referral Hub (`/referrals`)**: Live metrics tracking link clicks, registered scribes, qualified referrals, and total points earned.
+- **Fair Qualification Lifecycle**: Awards **100 Points** to the referrer and **25 Welcome Points** to the invited author upon completing their first platform action. Anti-abuse filters prevent self-referrals and disposable accounts.
+
+### 🪙 5. Dual-Currency Virtual Economy & Paragraph-Level Gifting
+- **Dual-Currency Architecture**:
+  - ✨ **Earned Points**: Earned freely by writing, voting, winning rounds, and referring friends. Used for community gifts and rank.
+  - 🪙 **Purchased Credits**: Acquired to send premium creator tokens, Super Likes, and spotlight awards.
+  - *No Cash Redemption*: Virtual points represent prestige and appreciation; zero speculative tokens or fiat withdrawal claims.
+- **Signature Feature: Paragraph-Level Gifting**:
+  - Readers appreciate individual paragraphs directly, crediting **70% of points value directly to that paragraph's author**.
+  - **Gift Catalog**: Ink Feather (25 pts), Literary Rose (50 pts), Ancient Scroll (100 pts), Burning Star (200 pts), Crown of Words (10 cr).
+  - **Super Likes**: Awards a permanent warm golden glow and highlighted border to celebrated paragraphs.
+- **Gift Store (`/store`) & Double-Entry Ledger (`/wallet`)**: Complete transaction history with immutable debit/credit accounting.
+
+### 🌐 6. Trilingual & Native RTL Architecture
+- **Complete Parity**: 100% dictionary key parity across English (`en`), French (`fr`), and Arabic (`ar`).
+- **Right-to-Left (RTL) Layout**: Tailored Arabic typography using the Amiri serif typeface, dynamic directional flipping, and natural mirroring.
+
+---
+
+## 🛠️ Technology Stack
+
+| Layer | Technologies |
 |---|---|
-| **Framework** | Next.js 16.4.6 (App Router, Turbopack) |
-| **UI Library** | React 19.3.1 |
-| **Language** | TypeScript 5.7+ (Strict Mode) |
-| **Styling** | Tailwind CSS 4.3+ & Literary Ink Design System |
-| **Icons & Primitives** | Lucide Icons, Sonner Toaster |
-| **Database & Auth** | Supabase (PostgreSQL 15+, RLS, SSR cookie handling) |
-| **Testing** | Vitest 3.2+ (41 Unit & Integration Tests) |
-| **CI/CD** | GitHub Actions (`.github/workflows/ci.yml`) |
+| **Framework** | Next.js 16.4.6 (App Router, Turbopack, React 19 Server Components) |
+| **Frontend Library** | React 19.3.1 & TypeScript Strict Mode |
+| **Styling & Design** | Tailwind CSS 4.3+, Literary Ink Palette, Dark/Light Mode (WCAG AA) |
+| **Database & Auth** | Supabase PostgreSQL 15+, Row Level Security (RLS), SSR Cookie Auth |
+| **Internationalization** | `next-intl` (English, French, Arabic RTL) |
+| **Automated Testing** | Vitest 3.2+ (71 Unit, Integration, and Parity Tests) |
+| **Icons & Notifications** | Lucide React, Sonner Toaster |
+| **CI / CD** | GitHub Actions (`.github/workflows/ci.yml`), Vercel Deployment |
 
 ---
 
-## Quick Start (Local Development)
+## 📁 Repository Structure
+
+```
+StoryRemix/
+├── .github/                     # GitHub workflows, templates, and CODEOWNERS
+│   ├── workflows/ci.yml         # Automated typecheck, test, and build pipeline
+│   ├── ISSUE_TEMPLATE/          # Bug report and feature request templates
+│   ├── PULL_REQUEST_TEMPLATE.md # Structured PR verification template
+│   └── CONTRIBUTING.md          # Contribution and code standards
+├── messages/                    # Trilingual localization dictionaries
+│   ├── en.json                  # English dictionary
+│   ├── fr.json                  # French dictionary
+│   └── ar.json                  # Arabic dictionary (RTL)
+├── public/                      # Static branding and web assets
+│   ├── favicon.svg              # Literary quill vector logo
+│   ├── favicon.ico              # Multi-resolution icon binary
+│   ├── og-image.png             # 1200x630 social share card
+│   └── manifest.json            # Web App Manifest
+├── src/
+│   ├── app/                     # Next.js 16 App Router
+│   │   ├── actions/             # Server actions (story, onboarding, referral, wallet, payment)
+│   │   ├── explore/             # Story discovery feed
+│   │   ├── join/                # Referral invitation landing page
+│   │   ├── referrals/           # Creator Referral Hub dashboard
+│   │   ├── rounds/              # Active democratic voting rounds
+│   │   ├── store/               # Gift Emporium and credit top-up
+│   │   ├── stories/             # Story detail, reader, and genesis creation
+│   │   └── wallet/              # Dual-currency ledger and transaction history
+│   ├── components/              # Modular UI components
+│   │   ├── brand/               # Brand logo and literary insignias
+│   │   ├── layout/              # Redesigned navbar, footer, and drawers
+│   │   ├── onboarding/          # 7-step guided onboarding wizard
+│   │   └── story/               # Story reader, cards, and paragraph gift modal
+│   ├── data/                    # Curated showcase author and story datasets
+│   ├── lib/                     # Core logic, showcase service, tokenizer, revenue formulas
+│   └── types/                   # Supabase database TypeScript definitions
+└── supabase/
+    └── migrations/              # Additive PostgreSQL migrations and stored procedures
+```
+
+---
+
+## 🚀 Quick Start
 
 ### 1. Prerequisites
-- Node.js 20+ (Node v22 / v24 supported)
-- npm
+- **Node.js**: v20 or v22+
+- **npm**: v10+
+- **Supabase**: Active PostgreSQL project reference
 
 ### 2. Clone & Install
 ```bash
@@ -101,64 +146,55 @@ cd StoryRemix
 npm install
 ```
 
-### 3. Environment Variables
-Copy `.env.example` to `.env.local`:
-```bash
-cp .env.example .env.local
-```
-Configure your Supabase URL and keys in `.env.local`:
+### 3. Environment Setup
+Create a `.env.local` file in the project root:
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://ysrxzzscfttsiscdpiby.supabase.co
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
-# Or NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
-CRON_SECRET=your-random-cron-secret
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+CRON_SECRET=your-secure-cron-secret
 ```
 
-### 4. Database Setup
-Apply the consolidated master setup migration in your [Supabase SQL Editor](https://supabase.com/dashboard/project/ysrxzzscfttsiscdpiby/sql):
-- `supabase/migrations/master_setup.sql` (1-click script creating all 19 tables, storage buckets `avatars` and `story-covers`, idempotent triggers, RLS policies, and reloading the schema cache).
-See [Supabase Setup Guide](file:///c:/Users/MHMD/Documents/StoryRemix/docs/SUPABASE_SETUP.md) for full instructions.
-
-### 5. Typecheck & Tests
-```bash
-npm run typecheck
-npm test
-```
-
-### 6. Start Development Server
+### 4. Run Development Server
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ---
 
-## Automated Background Processing
+## 🧪 Testing & Verification
 
-To automatically evaluate expired rounds:
-Configure a cron scheduler (e.g. Vercel Cron or GitHub Actions) to send an authenticated GET request every 5–15 minutes:
+StoryRemix maintains a rigorous automated testing suite covering multilingual sentence boundary tokenization, story workflow bounds, atomic rollback guarantees, virtual economy ledger balances, 70% paragraph gift splits, and 100% i18n key parity:
+
 ```bash
-curl -H "Authorization: Bearer $CRON_SECRET" https://your-deployment.vercel.app/api/cron/process-rounds
+# Run complete test suite (71 passing tests)
+npm run test
+
+# Run TypeScript strict typecheck
+npm run typecheck
+
+# Run production build (Turbopack)
+npm run build
 ```
 
 ---
 
-## Deployment to Vercel
+## 🔒 Security & Privacy
 
-1. Push your repository to GitHub.
-2. Import the repository in [Vercel](https://vercel.com).
-3. Configure Environment Variables under Project Settings:
-   - `NEXT_PUBLIC_SUPABASE_URL`: `https://ysrxzzscfttsiscdpiby.supabase.co`
-   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: (Your project publishable key)
-   - `SUPABASE_SERVICE_ROLE_KEY`: (Your project service role key, server-only)
-   - `CRON_SECRET`: (Secure random string for cron route authentication)
-4. In your **Supabase Dashboard** under *Authentication* -> *URL Configuration*:
-   - Set **Site URL** to `https://your-domain.vercel.app`
-   - Add **Redirect URLs**: `https://your-domain.vercel.app/auth/callback`
-5. Deploy. Next.js 16 with Turbopack compiles all routes and static assets automatically.
+- **Row Level Security**: Every table in PostgreSQL is protected by explicit RLS policies for `SELECT`, `INSERT`, `UPDATE`, and `DELETE`.
+- **Atomic Stored Procedures**: Multi-step actions (story launches, wallet transactions, gifts) execute within database transactions.
+- **Fail-Closed Background Tasks**: Automated round closure routes require cryptographic bearer authentication.
 
 ---
 
-## License
-MIT © StoryRemix Contributors.
+## 📄 License & Proprietary Notice
+
+**PROPRIETARY & CONFIDENTIAL**
+
+Copyright © 2026 **MHMD.STUDIO**. All rights reserved.
+
+This source code, designs, branding, assets, and documentation are the exclusive intellectual property of **MHMD.STUDIO**. Unauthorized copying, modification, distribution, public display, or commercial exploitation via any medium is strictly prohibited without prior written authorization.
+
+For licensing or partnership inquiries, contact **MHMD.STUDIO** at [github.com/mhmddesign](https://github.com/mhmddesign).
